@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, icon, avatar, empty %}
+{% block title %}Account{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="d-flex align-items-center gap-3">
+    {{ avatar(me.full_name, 'lg') }}
+    <div><h1 class="m-0">{{ me.full_name }}</h1><p>{{ role_labels[me.role] }}{% if me.department %}, {{ me.department }}{% endif %}</p></div>
+  </div>
+</header>
+<nav class="tabs" aria-label="Account sections">
+  <a class="{{ 'on' if tab == 'profile' }}" href="{{ url_for('account', tab='profile') }}" {{ 'aria-current=page' if tab == 'profile' }}>{{ icon('user', 'ic-sm') }}Profile</a>
+  <a class="{{ 'on' if tab == 'appearance' }}" href="{{ url_for('account', tab='appearance') }}" {{ 'aria-current=page' if tab == 'appearance' }}>{{ icon('palette', 'ic-sm') }}Appearance</a>
+  <a class="{{ 'on' if tab == 'security' }}" href="{{ url_for('account', tab='security') }}" {{ 'aria-current=page' if tab == 'security' }}>{{ icon('lock', 'ic-sm') }}Security</a>
+  <a class="{{ 'on' if tab == 'activity' }}" href="{{ url_for('account', tab='activity') }}" {{ 'aria-current=page' if tab == 'activity' }}>{{ icon('history', 'ic-sm') }}Sign-in activity</a>
+</nav>
+
+{% if tab == 'profile' %}
+<section class="panel">
+  <form method="post" action="{{ url_for('account', tab='profile') }}">
+    {{ csrf() }}<input type="hidden" name="action" value="profile">
+    <div class="set-row"><div><h3>Your details</h3><p>Your name appears on approvals, emails and the audit log.</p></div>
+      <div class="d-flex flex-column gap-3" style="max-width: 460px">
+        <div><label class="form-label" for="fn">Full name</label><input class="form-control" id="fn" name="full_name" value="{{ me.full_name }}" maxlength="80" required></div>
+        <div><label class="form-label" for="em">Work email</label><input class="form-control" id="em" name="email" type="email" value="{{ me.email }}" required></div>
+        <div><label class="form-label" for="dp">Department</label><input class="form-control" id="dp" name="department" value="{{ me.department or '' }}" maxlength="80" placeholder="e.g. Accounts Payable"></div>
+        <div><button class="btn btn-primary" type="submit">{{ icon('check', 'ic-sm') }}Save profile</button></div>
+      </div></div>
+  </form>
+  <div class="set-row"><div><h3>Account</h3><p>Set by your administrator.</p></div>
+    <div style="max-width: 460px">
+      <div class="kv"><span>Username</span><b>{{ me.username }}</b></div>
+      <div class="kv"><span>Role</span><b>{{ role_labels[me.role] }}</b></div>
+      <div class="kv"><span>Status</span><span class="badge-s b-approved">Active</span></div>
+      <div class="kv"><span>Previous sign-in</span><b>{{ previous.created_at|dt if previous else 'This is your first' }}</b></div>
+      <div class="kv"><span>Profile picture</span><span class="muted">Initials are used; photo uploads aren't supported yet</span></div>
+    </div></div>
+</section>
+
+{% elif tab == 'appearance' %}
+<section class="panel">
+  <form class="set-row" method="post" action="{{ url_for('account', tab='appearance') }}" id="theme-form">
+    {{ csrf() }}<input type="hidden" name="action" value="theme">
+    <div><h3>Theme</h3><p>Saved to your account, so it follows you to any browser. System follows your device's setting.</p></div>
+    <div class="d-flex flex-column gap-3 align-items-start">
+      <div class="seg" role="radiogroup" aria-label="Theme">
+        {% for v, l, ic in (('light', 'Light', 'sun'), ('dark', 'Dark', 'moon'), ('system', 'System', 'monitor')) %}
+        <label><input type="radio" name="theme" value="{{ v }}" {{ 'checked' if (me.theme or 'system') == v }}><span>{{ icon(ic, 'ic-sm') }}{{ l }}</span></label>
+        {% endfor %}
+      </div>
+      <noscript><button class="btn btn-primary" type="submit">Save appearance</button></noscript>
+      <span class="form-hint" id="theme-status" aria-live="polite"></span>
+    </div>
+  </form>
+</section>
+
+{% elif tab == 'security' %}
+<section class="panel">
+  <form class="set-row" method="post" action="{{ url_for('account', tab='security') }}">
+    {{ csrf() }}<input type="hidden" name="action" value="password">
+    <div><h3>Password</h3><p>Last changed: {{ me.password_changed_at|dt if me.password_changed_at else 'never (still the starting password)' }}.</p>
+      <p class="mt-2">At least 10 characters, with letters and numbers. Changing it signs out your other sessions.</p></div>
+    <div class="d-flex flex-column gap-3" style="max-width: 420px">
+      <div><label class="form-label" for="cur">Current password</label><div class="pw-wrap"><input class="form-control" id="cur" name="current" type="password" required autocomplete="current-password"><button class="pw-toggle" type="button" data-pw-toggle="cur" aria-label="Show password" aria-pressed="false">{{ icon('eye') }}</button></div></div>
+      <div><label class="form-label" for="new">New password</label><div class="pw-wrap"><input class="form-control" id="new" name="new" type="password" required minlength="10" autocomplete="new-password"><button class="pw-toggle" type="button" data-pw-toggle="new" aria-label="Show password" aria-pressed="false">{{ icon('eye') }}</button></div></div>
+      <div><label class="form-label" for="cf">Confirm new password</label><input class="form-control" id="cf" name="confirm" type="password" required minlength="10" autocomplete="new-password"></div>
+      <div><button class="btn btn-primary" type="submit">{{ icon('key-round', 'ic-sm') }}Change password</button></div>
+    </div>
+  </form>
+  <div class="set-row"><div><h3>Two-factor authentication</h3><p>An authenticator-app code at sign-in.</p></div>
+    <div><span class="unavailable">Not available in this version of ClearPay. Sign-in uses a password with lockout after 5 failed attempts.</span></div></div>
+  <div class="set-row"><div><h3>Active sessions</h3><p>Every place you're signed in. Sessions end after 30 minutes without activity.</p></div>
+    <div>
+      {% set live = sessions|selectattr('live')|list %}
+      {% for r in live %}
+      <div class="sess">
+        <span class="s-ic">{{ icon('smartphone' if 'Mobile' in (r.user_agent or '') else 'laptop') }}</span>
+        <div class="s-body">{{ r.user_agent|agent }}{% if r.current %}<span class="tag-now">This session</span>{% endif %}
+          <small>Signed in {{ r.created_at|dt }}, last active {{ r.last_seen|ist_time }}, from {{ r.ip or 'unknown address' }}</small></div>
+        {% if not r.current %}<form method="post" action="{{ url_for('account', tab='security') }}">{{ csrf() }}<input type="hidden" name="action" value="end_session"><input type="hidden" name="sid" value="{{ r.id }}">
+          <button class="btn btn-outline btn-sm" type="submit">Sign out</button></form>{% endif %}
+      </div>
+      {% endfor %}
+      {% if live|length > 1 %}
+      <form method="post" action="{{ url_for('account', tab='security') }}" class="mt-3">{{ csrf() }}<input type="hidden" name="action" value="end_others">
+        <button class="btn btn-reject btn-sm" type="submit" data-confirm="Sign out of all other sessions?" data-confirm-text="Every other browser or device signed in as you is signed out now. This session stays signed in." data-confirm-ok="Sign out others">{{ icon('log-out', 'ic-sm') }}Sign out of all other sessions</button></form>
+      {% endif %}
+    </div></div>
+  <div class="set-row"><div><h3>Security alerts</h3><p>New devices, password changes and lockouts on your account.</p></div>
+    <div>
+      {% for n in alerts %}
+      <div class="sess"><span class="s-ic" style="color: var(--violet-ink)">{{ icon('shield-alert') }}</span><div class="s-body">{{ n.title }}<small>{{ n.body }}</small><small>{{ n.created_at|dt }}</small></div></div>
+      {% else %}<p class="muted m-0" style="font-size: 14px">No security alerts.</p>{% endfor %}
+    </div></div>
+</section>
+
+{% else %}
+<section class="panel">
+  <div class="panel-head"><h2>Sign-in activity</h2><span class="muted" style="font-size: 13px">Times in IST. Location isn't recorded; the network address is shown instead.</span></div>
+  {% if activity %}
+  <div class="table-wrap"><table class="tbl" style="min-width: 720px">
+    <thead><tr><th>When</th><th>Event</th><th>Browser and device / details</th><th>Address</th></tr></thead>
+    <tbody>
+    {% for a in activity %}<tr><td class="mono" style="white-space: nowrap">{{ a.ts|dt }}</td>
+      <td><span class="badge-s {{ 'b-ok' if a.ok else 'b-problem' }}">{{ a.event }}</span></td>
+      <td>{{ a.detail or '' }}</td><td class="mono">{{ a.ip or '' }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% else %}{% call empty('history', 'No sign-in activity yet.') %}{% endcall %}{% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,50 @@
+{% from "macros.html" import icon %}
+<!doctype html>
+<html lang="en" data-theme-pref="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · ClearPay</title>
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='brand/clearpay-favicon.svg') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='brand/clearpay-favicon-32.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/clearpay-app-icon-180.png') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body data-icons="{{ url_for('static', filename='icons.svg') }}">
+<div class="login-wrap">
+  <div class="login-col">
+    <div class="login-logo enter-logo"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
+    <div class="panel login-card enter-card">
+      <div class="mb-3">
+        <h1>Sign in</h1>
+        <p class="muted mb-0" style="font-size: 14px">Accounts payable workspace for the AP team, managers and admins.</p>
+      </div>
+      {% if error %}<div class="flash error mb-3" role="alert">{{ icon('circle-alert') }}<span>{{ error }}</span></div>{% endif %}
+      <form method="post" autocomplete="on" id="login-form" class="stagger d-flex flex-column gap-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><label class="form-label" for="u">Username</label>
+          <input class="form-control" id="u" name="username" required autofocus autocomplete="username"></div>
+        <div><label class="form-label" for="p">Password</label>
+          <div class="pw-wrap"><input class="form-control" id="p" name="password" type="password" required autocomplete="current-password">
+            <button class="pw-toggle" type="button" data-pw-toggle="p" aria-label="Show password" aria-pressed="false">{{ icon('eye') }}</button></div></div>
+        <div class="d-flex justify-content-between align-items-center">
+          <label class="form-check d-flex align-items-center gap-2 m-0" style="font-size: 14px"><input class="form-check-input m-0" type="checkbox" id="remember"> Remember my username</label>
+          <button class="link-btn" type="button" id="forgot-btn" aria-expanded="false" aria-controls="forgot">Forgot password?</button>
+        </div>
+        <button class="btn btn-primary w-100" type="submit" id="signin-btn" data-busy-text="Signing in…">{{ icon('lock', 'ic-sm') }}<span>Sign in</span></button>
+        <div class="forgot-panel" id="forgot" hidden>
+          Passwords are reset by your ClearPay administrator: they open <b>Settings &amp; users</b> and choose <b>Reset password</b>.
+          ClearPay doesn't send reset links by email yet.
+        </div>
+      </form>
+    </div>
+    {% if show_demo_hint %}<p class="login-foot enter-logo"><br></p>{% else %}<p class="login-foot enter-logo">Five wrong passwords lock an account for 15 minutes.</p>{% endif %}
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

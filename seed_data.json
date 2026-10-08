@@ -1,0 +1,554 @@
+{
+  "source": "Kaggle Procurement KPI Analysis Dataset (Procurement_KPI_Analysis_Dataset-selected-columns.csv); vendor contact, bank and GST details are FAKE; prices treated as INR",
+  "created": "2026-10-08T17:15:58",
+  "tax_rate": 0.18,
+  "settings": {
+    "auto_approve_limit": "50000"
+  },
+  "vendors": [
+    {
+      "name": "Alpha Inc",
+      "email": "accounts@alphainc.example",
+      "gstin": "36AAACA6305E1ZR",
+      "bank_account": "17090709584",
+      "ifsc": "HDFC0075954"
+    },
+    {
+      "name": "Beta Supplies",
+      "email": "accounts@betasupplies.example",
+      "gstin": "29ABHCB9779D1ZP",
+      "bank_account": "162632597597",
+      "ifsc": "ICIC0953893"
+    },
+    {
+      "name": "Delta Logistics",
+      "email": "accounts@deltalogistics.example",
+      "gstin": "27ACOCD9313G1Z2",
+      "bank_account": "8628231058266",
+      "ifsc": "SBIN0438485"
+    },
+    {
+      "name": "Epsilon Group",
+      "email": "accounts@epsilongroup.example",
+      "gstin": "33ADVCE2144H1Z5",
+      "bank_account": "69745361817294",
+      "ifsc": "UTIB0061981"
+    },
+    {
+      "name": "Gamma Co",
+      "email": "accounts@gammaco.example",
+      "gstin": "07AECCG3028H1Z3",
+      "bank_account": "89788049615",
+      "ifsc": "KKBK0415949"
+    }
+  ],
+  "purchase_orders": [
+    {
+      "po_number": "PO-2001",
+      "vendor_index": 0,
+      "issue_date": "2022-04-15",
+      "source_po_id": "PO-00008",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 1094,
+          "unit_price": 32.78
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2002",
+      "vendor_index": 1,
+      "issue_date": "2023-10-28",
+      "source_po_id": "PO-00024",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 393,
+          "unit_price": 66.31
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2003",
+      "vendor_index": 2,
+      "issue_date": "2023-09-09",
+      "source_po_id": "PO-00020",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 180,
+          "unit_price": 38.89
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2004",
+      "vendor_index": 3,
+      "issue_date": "2023-07-13",
+      "source_po_id": "PO-00026",
+      "lines": [
+        {
+          "description": "Packaging",
+          "quantity": 1487,
+          "unit_price": 17.24
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2005",
+      "vendor_index": 4,
+      "issue_date": "2023-07-13",
+      "source_po_id": "PO-00010",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 171,
+          "unit_price": 70.2
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2006",
+      "vendor_index": 0,
+      "issue_date": "2022-01-07",
+      "source_po_id": "PO-00032",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 1234,
+          "unit_price": 15.66
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2007",
+      "vendor_index": 1,
+      "issue_date": "2023-12-20",
+      "source_po_id": "PO-00025",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 1565,
+          "unit_price": 20.09
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2008",
+      "vendor_index": 2,
+      "issue_date": "2023-07-29",
+      "source_po_id": "PO-00022",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 1382,
+          "unit_price": 23.75
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2009",
+      "vendor_index": 3,
+      "issue_date": "2022-08-14",
+      "source_po_id": "PO-00028",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 435,
+          "unit_price": 15.84
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2010",
+      "vendor_index": 4,
+      "issue_date": "2022-10-12",
+      "source_po_id": "PO-00031",
+      "lines": [
+        {
+          "description": "Electronics",
+          "quantity": 326,
+          "unit_price": 15.92
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2011",
+      "vendor_index": 0,
+      "issue_date": "2023-03-06",
+      "source_po_id": "PO-00027",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 855,
+          "unit_price": 67.16
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2012",
+      "vendor_index": 1,
+      "issue_date": "2022-06-09",
+      "source_po_id": "PO-00038",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 906,
+          "unit_price": 90.9
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2013",
+      "vendor_index": 2,
+      "issue_date": "2022-04-25",
+      "source_po_id": "PO-00002",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 1509,
+          "unit_price": 37.34
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2014",
+      "vendor_index": 3,
+      "issue_date": "2022-08-17",
+      "source_po_id": "PO-00006",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 1145,
+          "unit_price": 63.57
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2015",
+      "vendor_index": 4,
+      "issue_date": "2022-01-04",
+      "source_po_id": "PO-00163",
+      "lines": [
+        {
+          "description": "Packaging",
+          "quantity": 456,
+          "unit_price": 77.86
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2016",
+      "vendor_index": 0,
+      "issue_date": "2022-09-27",
+      "source_po_id": "PO-00123",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 266,
+          "unit_price": 101.44
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2017",
+      "vendor_index": 1,
+      "issue_date": "2022-05-22",
+      "source_po_id": "PO-00130",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 64,
+          "unit_price": 50.88
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2018",
+      "vendor_index": 2,
+      "issue_date": "2022-05-08",
+      "source_po_id": "PO-00052",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 612,
+          "unit_price": 19.75
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2019",
+      "vendor_index": 3,
+      "issue_date": "2022-12-15",
+      "source_po_id": "PO-00036",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 302,
+          "unit_price": 81.52
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2020",
+      "vendor_index": 4,
+      "issue_date": "2022-08-22",
+      "source_po_id": "PO-00066",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 437,
+          "unit_price": 56.45
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2021",
+      "vendor_index": 0,
+      "issue_date": "2022-02-16",
+      "source_po_id": "PO-00064",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 216,
+          "unit_price": 12.31
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2022",
+      "vendor_index": 1,
+      "issue_date": "2022-04-15",
+      "source_po_id": "PO-00041",
+      "lines": [
+        {
+          "description": "Electronics",
+          "quantity": 1132,
+          "unit_price": 15.36
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2023",
+      "vendor_index": 2,
+      "issue_date": "2023-12-23",
+      "source_po_id": "PO-00062",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 70,
+          "unit_price": 11.04
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2024",
+      "vendor_index": 3,
+      "issue_date": "2022-12-11",
+      "source_po_id": "PO-00040",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 524,
+          "unit_price": 39.65
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2025",
+      "vendor_index": 4,
+      "issue_date": "2023-11-24",
+      "source_po_id": "PO-00009",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 1688,
+          "unit_price": 39.89
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2026",
+      "vendor_index": 0,
+      "issue_date": "2023-03-09",
+      "source_po_id": "PO-00035",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 71,
+          "unit_price": 43.18
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2027",
+      "vendor_index": 1,
+      "issue_date": "2022-03-23",
+      "source_po_id": "PO-00068",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 365,
+          "unit_price": 15.41
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2028",
+      "vendor_index": 2,
+      "issue_date": "2022-12-30",
+      "source_po_id": "PO-00078",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 1005,
+          "unit_price": 12.79
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2029",
+      "vendor_index": 3,
+      "issue_date": "2022-09-28",
+      "source_po_id": "PO-00048",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 239,
+          "unit_price": 11.28
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2030",
+      "vendor_index": 4,
+      "issue_date": "2022-03-15",
+      "source_po_id": "PO-00085",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 1154,
+          "unit_price": 26.07
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2031",
+      "vendor_index": 0,
+      "issue_date": "2022-12-19",
+      "source_po_id": "PO-00046",
+      "lines": [
+        {
+          "description": "Electronics",
+          "quantity": 1025,
+          "unit_price": 19.25
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2032",
+      "vendor_index": 1,
+      "issue_date": "2022-06-13",
+      "source_po_id": "PO-00138",
+      "lines": [
+        {
+          "description": "Office Supplies",
+          "quantity": 697,
+          "unit_price": 19.83
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2033",
+      "vendor_index": 2,
+      "issue_date": "2023-10-26",
+      "source_po_id": "PO-00084",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 255,
+          "unit_price": 33.59
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2034",
+      "vendor_index": 3,
+      "issue_date": "2023-07-04",
+      "source_po_id": "PO-00051",
+      "lines": [
+        {
+          "description": "Electronics",
+          "quantity": 1007,
+          "unit_price": 19.59
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2035",
+      "vendor_index": 4,
+      "issue_date": "2023-02-10",
+      "source_po_id": "PO-00114",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 345,
+          "unit_price": 98.09
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2036",
+      "vendor_index": 0,
+      "issue_date": "2023-04-16",
+      "source_po_id": "PO-00050",
+      "lines": [
+        {
+          "description": "MRO",
+          "quantity": 736,
+          "unit_price": 15.33
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2037",
+      "vendor_index": 1,
+      "issue_date": "2023-06-26",
+      "source_po_id": "PO-00147",
+      "lines": [
+        {
+          "description": "Raw Materials",
+          "quantity": 338,
+          "unit_price": 46.28
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2038",
+      "vendor_index": 2,
+      "issue_date": "2023-07-01",
+      "source_po_id": "PO-00089",
+      "lines": [
+        {
+          "description": "Electronics",
+          "quantity": 1075,
+          "unit_price": 16.12
+        }
+      ]
+    },
+    {
+      "po_number": "PO-2039",
+      "vendor_index": 3,
+      "issue_date": "2022-03-09",
+      "source_po_id": "PO-00107",
+      "lines": [
+        {
+          "description": "Electronics",
+          "quantity": 1344,
+          "unit_price": 10.87
+        }
+      ]
+    }
+  ]
+}

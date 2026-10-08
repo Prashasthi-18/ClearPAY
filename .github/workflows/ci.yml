@@ -1,0 +1,52 @@
+# Runs on every push: unit + security tests, agent evaluation with a regression gate, code and dependency scans.
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      LLM_MODE: offline          # deterministic; add a GROQ_API_KEY secret + LLM_MODE=auto to test the real model
+      DISABLE_WATCHER: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-dev.txt
+      - name: Generate test data
+        run: python generate_data.py
+      - name: Unit and security tests
+        run: pytest -q
+      - name: Agent evaluation (fails if a correct decision breaks)
+        run: |
+          python evaluate.py --mode offline --save-baseline
+          python evaluate.py --mode offline --check-regression
+      - name: Static security scan
+        run: bandit -q -r app.py agent.py tools.py db.py security.py watcher.py evaluate.py generate_data.py smart_match.py investigator.py retrieval.py assistant.py helpbot.py insights.py email_inbox.py compare_ai.py -ll
+      - name: Dependency vulnerability scan
+        run: pip-audit -r requirements.txt
+
+  # The same tests on a real PostgreSQL 16 (the main job above uses SQLite)
+  test-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: clearpay
+          POSTGRES_PASSWORD: clearpay_pw
+          POSTGRES_DB: clearpay_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U clearpay" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      LLM_MODE: offline
+      DISABLE_WATCHER: "1"
+      TEST_DATABASE_URL: postgresql://clearpay:clearpay_pw@localhost:5432/clearpay_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-dev.txt
+      - run: python generate_data.py
+      - name: Unit and security tests on PostgreSQL
+        run: pytest -q

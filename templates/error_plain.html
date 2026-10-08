@@ -1,0 +1,10 @@
+{% from "macros.html" import icon %}
+<!doctype html>
+<html lang="en" data-theme-pref=""><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{% block title %}{% endblock %} · ClearPay</title>
+<script src="{{ url_for('static', filename='theme.js') }}"></script>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='brand/clearpay-favicon.svg') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet"></head>
+<body><div class="login-wrap"><div class="login-col"><div class="login-logo"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
+<div class="panel login-card">{% block content %}{% endblock %}</div></div></div></body></html>

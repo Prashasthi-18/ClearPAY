@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf %}
+{% block title %}Evaluation report{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Evaluation report</h1>
+    <p>{% if r %}{{ r.rows|length }} labelled test invoices · run {{ r.meta.run_at|dt }} · {{ r.meta.model }} · prompt {{ r.meta.prompt_version }}{% else %}No evaluation run yet.{% endif %}</p></div>
+  {% if can('run_eval') %}
+  <form method="post" class="d-flex gap-2 flex-wrap">{{ csrf() }}
+    <button class="btn btn-outline" name="mode" value="offline" {{ 'disabled' if state.running }}>Run offline (no AI)</button>
+    <button class="btn btn-primary" name="mode" value="auto" {{ 'disabled' if state.running }}>Run evaluation{{ ' with Groq' if llm_on }}</button>
+  </form>{% endif %}
+</header>
+{% if state.running %}<div class="note" id="evalstate" data-url="{{ url_for('eval_status') }}" aria-live="polite">Starting…</div>{% endif %}
+{% if state.error %}<div class="flash error">The last run failed: {{ state.error }}</div>{% endif %}
+{% if r %}
+<section class="grid-stats" aria-label="Headline scores">
+  <div class="panel stat"><span class="label">Extraction accuracy</span><span class="value">{{ r.extraction_accuracy }}%</span><span class="sub">Fields read the same as the answer key</span></div>
+  <div class="panel stat"><span class="label">Correct routing</span><span class="value">{{ r.routing_pct }}%</span><span class="sub">{{ r.routing_correct }} of {{ r.routing_total }} decisions right</span></div>
+  <div class="panel stat"><span class="label">Duplicates caught</span><span class="value">{{ r.duplicates_caught }} / {{ r.duplicates_total }}</span><span class="sub">Re-sent invoices rejected</span></div>
+  <div class="panel stat"><span class="label">Avg processing time</span><span class="value">{{ '%.1f'|format(r.avg_ms / 1000) }}s</span><span class="sub">{{ '{:,}'.format(r.avg_tokens) }} tokens · ${{ '%.4f'|format(r.est_cost_per_invoice_usd) }} per invoice</span></div>
+</section>
+<div class="grid-2">
+  <section class="panel panel-pad d-flex flex-column gap-3" aria-label="Accuracy per field">
+    <h2>How well the AI read each field</h2>
+    {% for f, p in r.field_accuracy.items() %}
+      <div class="fieldbar"><span>{{ f|replace('_',' ')|capitalize }}</span><span class="bar"><span class="{{ 'bg-ok' if p >= 95 else ('bg-accent' if p >= 90 else 'bg-warn') }}" style="width: {{ p }}%"></span></span><span class="mono" style="text-align: right">{{ p }}%</span></div>
+    {% endfor %}
+  </section>
+  <section class="panel" aria-label="Routing by case type">
+    <div class="panel-head"><h2>Routing results by case type</h2></div>
+    <table class="tbl"><thead><tr><th>Case type</th><th>Expected</th><th>Passed</th></tr></thead><tbody>
+      {% for c in r.by_case %}<tr><td>{{ c.case_type }}</td><td>{{ badge(c.expected) }}</td><td><span class="badge-s {{ 'b-ok' if c.passed == c.total else 'b-problem' }}">{{ c.passed }}/{{ c.total }}</span></td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+</div>
+<section class="panel" aria-label="Cases the agent got wrong">
+  <div class="panel-head"><h2>Cases the agent got wrong ({{ r.failures|length }})</h2></div>
+  {% if r.failures %}
+  <div class="table-wrap"><table class="tbl" style="min-width: 700px"><thead><tr><th>Test file</th><th>Expected</th><th>Agent said</th><th>Why</th></tr></thead><tbody>
+    {% for x in r.failures %}<tr><td class="mono">{{ x.file }}</td><td>{{ badge(x.expected_status) }}</td><td>{{ badge(x.status) }}</td><td class="muted">{{ x.reason }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty">None. Every test invoice was routed as expected.</div>{% endif %}
+</section>
+<section class="panel" aria-label="All results">
+  <div class="panel-head"><h2>All test invoices</h2><span class="muted" style="font-size: 13px">Run with <span class="mono">python evaluate.py</span> from the terminal too</span></div>
+  <div class="table-wrap"><table class="tbl" style="min-width: 860px"><thead><tr><th>File</th><th>Case</th><th>Expected</th><th>Agent said</th><th class="num">Time</th><th>Reason</th></tr></thead><tbody>
+    {% for x in r.rows %}<tr class="{{ 'bad' if x.status != x.expected_status }}"><td class="mono">{{ x.file }}</td><td>{{ x.case_type }}</td><td>{{ badge(x.expected_status) }}</td><td>{{ badge(x.status) }}</td><td class="num">{{ '%.1f'|format(x.ms / 1000) }}s</td><td class="muted">{{ x.reason }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% else %}
+<div class="panel empty">Run the evaluation to score the agent on 30 labelled invoices{% if not can('run_eval') %} (ask an AP user or admin){% endif %}.</div>
+{% endif %}
+{% endblock %}

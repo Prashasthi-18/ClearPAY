@@ -1,0 +1,26 @@
+# Secrets and local settings: never commit these
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Local data created when ClearPay runs
+data/
+invoices_inbox/
+sample_invoices/
+redteam_invoices/
+
+# Kaggle dataset (keep it out of the repository; seed_data.json is the part the app needs)
+Procurement_KPI*.csv
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+Procurement*KPI*.csv

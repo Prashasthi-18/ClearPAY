@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf, icon %}
+{% block title %}Approvals{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Approvals</h1></div>
+  <div class="chips" role="group" aria-label="Sort">
+    <a class="chip {{ 'on' if sort != 'amount' }}" href="{{ url_for('approvals') }}">Oldest first</a>
+    <a class="chip {{ 'on' if sort == 'amount' }}" href="{{ url_for('approvals', sort='amount') }}">Highest amount</a>
+  </div>
+</header>
+
+{% for it in items %}
+<article class="panel panel-pad" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; align-items: center">
+  <div class="d-flex flex-column gap-1">
+    <div class="d-flex gap-2 align-items-center flex-wrap"><a class="mono" style="font-weight: 600; font-size: 16px; text-decoration: none" href="{{ url_for('invoice', iid=it.id) }}">{{ it.invoice_number or it.file_name }}</a>
+      <span class="badge-s b-pending">Since {{ it.created_at|dt }}</span></div>
+    <div style="font-size: 14px">{{ it.vendor_name }} · {{ it.po_number or 'no PO' }}</div>
+    <div class="mono" style="font-size: 22px; font-weight: 600">{{ it.total|inr }}</div>
+  </div>
+  <div class="d-flex flex-column gap-1" style="font-size: 14px">
+    <span class="muted" style="font-size: 12px; font-weight: 600">Why it needs you</span>
+    {% for i in issues[it.id][:3] %}<span class="d-flex gap-2">{{ icon('triangle-alert', 'ic-sm') }}<span><b>{{ i.title }}.</b> {{ i.detail }}</span></span>{% else %}<span>{{ it.decision_reason }}</span>{% endfor %}
+  </div>
+  <div>
+    {% if it.uploaded_by == user.id %}
+      <div class="note">You uploaded this invoice, so another manager must decide (segregation of duties).</div>
+    {% else %}
+    <form method="post" class="d-flex flex-column gap-2">
+      {{ csrf() }}
+      <label class="form-label m-0" for="c{{ it.id }}">Comment (optional)</label>
+      <input class="form-control" id="c{{ it.id }}" name="comment" maxlength="500" placeholder="Add a note for the AP team">
+      <div class="d-flex gap-2">
+        <button class="btn btn-reject flex-fill" formaction="{{ url_for('reject', iid=it.id) }}" data-confirm="Reject {{ it.invoice_number or it.file_name }}?" data-confirm-text="The ledger entry is cancelled and the AP team is notified." data-confirm-ok="Reject invoice">Reject</button>
+        <button class="btn btn-approve flex-fill" formaction="{{ url_for('approve', iid=it.id) }}">Approve</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</article>
+{% else %}
+<div class="panel empty">Nothing is waiting for approval. New pending invoices appear here automatically.</div>
+{% endfor %}
+
+<div class="note">When you approve, the ledger entry becomes "Ready to pay" and the agent drafts an email to the AP team. No payment is made.</div>
+
+<section class="panel" aria-label="Recently decided">
+  <div class="panel-head"><h2>Recently decided</h2></div>
+  {% if recent %}
+  <div class="table-wrap"><table class="tbl" style="min-width: 640px"><tbody>
+    {% for r in recent %}<tr><td class="mono"><a class="rowlink" href="{{ url_for('invoice', iid=r.id) }}">{{ r.invoice_number or r.file_name }}</a></td><td>{{ r.vendor_name }}</td><td>{{ badge(r.status) }}</td>
+      <td class="muted">by {{ r.decider }} · {{ r.decided_at|dt }}{% if r.manager_comment %} · “{{ r.manager_comment }}”{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty">No decisions yet.</div>{% endif %}
+</section>
+{% endblock %}

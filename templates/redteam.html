@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, icon %}
+{% block title %}Red-team lab{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Red-team lab</h1><p>Trick invoices built to fool the agent. They run on a separate test database: nothing reaches the real ledger.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('evaluation') }}">Run attacks (with the evaluation)</a>
+</header>
+{% if r %}
+<section class="panel panel-pad d-flex flex-wrap gap-4 align-items-center" aria-label="Score">
+  <div><div class="muted" style="font-size: 13px">Attacks blocked</div><div class="mono" style="font-size: 34px; font-weight: 600">{{ r.blocked }} / {{ r.total }}</div></div>
+  <div style="font-size: 14px; max-width: 520px">{% if r.reached_approved %}<b style="color: var(--bad-ink)">{{ r.reached_approved }} attack(s) were auto-approved.</b> Open them below.{% else %}No attack was auto-approved or reached "Ready to pay" in the ledger.{% endif %}
+    <div class="muted" style="font-size: 13px">Run {{ r.meta.run_at|dt }} · {{ r.meta.model }}</div></div>
+</section>
+<section class="grid-stats" aria-label="Attack types">
+  {% for c in r.categories %}
+  <div class="panel stat"><span class="label">{{ c.category }}</span><span class="value" style="font-size: 24px">{{ c.blocked }}/{{ c.total }}</span><span class="sub">blocked</span></div>
+  {% endfor %}
+</section>
+<div class="grid-2">
+  <section class="panel" aria-label="Attacks">
+    <div class="panel-head"><h2>Every attack</h2></div>
+    <div class="table-wrap"><table class="tbl" style="min-width: 520px"><thead><tr><th>Attack</th><th>Type</th><th>Result</th></tr></thead><tbody>
+      {% for a in r.attacks %}<tr class="{{ 'sel' if sel and sel.file == a.file }} {{ 'bad' if not a.blocked }}">
+        <td><a href="{{ url_for('redteam', attack=a.file) }}">{{ a.attack|capitalize }}</a></td><td class="muted">{{ a.category }}</td>
+        <td>{{ badge(a.status) }} {% if not a.blocked %}<span class="badge-s b-problem">got through</span>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% if sel %}
+  <section class="panel panel-pad d-flex flex-column gap-3" aria-label="Attack replay">
+    <div class="d-flex justify-content-between gap-2 flex-wrap align-items-center"><h2>Replay · {{ sel.attack }}</h2>{{ badge(sel.status) }}</div>
+    <div><div class="form-label">What the agent read from the file (hidden text included)</div><div class="txtdoc" style="max-height: 240px">{{ text or '(unreadable)' }}</div></div>
+    <div><div class="form-label">What the agent did</div>
+      {% for s in trail %}<div class="step"><div class="dot {{ s.result }}">{% if s.result == 'ok' %}{{ icon('check') }}{% elif s.result in ('problem','blocked') %}{{ icon('triangle-alert') }}{% else %}{{ loop.index }}{% endif %}</div>
+        <div><div class="tool">{{ s.step }}</div><div class="msg">{{ s.reason }}</div></div></div>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% else %}
+<div class="panel empty">No red-team run yet. Go to the <a href="{{ url_for('evaluation') }}">evaluation page</a> and run it, or run <span class="mono">python evaluate.py</span>.</div>
+{% endif %}
+{% endblock %}

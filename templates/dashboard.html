@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, conf_bar, icon, empty %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="muted d-flex align-items-center" style="font-size: 13px"><span class="live-dot {{ '' if watcher.running else 'off' }}"></span>
+      Inbox watcher {{ 'running' if watcher.running else 'off' }}{% if watcher.last_pickup %}, last file picked up {{ watcher.last_pickup|dt }}{% endif %}</div>
+    <h1>Invoice dashboard</h1>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if unread_count %}<a class="btn btn-outline" href="{{ url_for('notifications_page', show='unread') }}">{{ icon('bell-ring', 'ic-sm') }}{{ unread_count }} unread notification{{ 's' if unread_count != 1 }}</a>{% endif %}
+    {% if can('upload') %}<a class="btn btn-primary" href="{{ url_for('upload') }}">{{ icon('upload', 'ic-sm') }}Upload invoice</a>{% endif %}
+  </div>
+</header>
+
+<section class="grid-stats" aria-label="Key numbers">
+  <a class="panel stat" href="{{ url_for('dashboard', status='Flagged') }}">
+    <span class="label">{{ icon('triangle-alert', 'ic-sm') }}Needs AP review</span><span class="value">{{ s.counts.Flagged }}</span>
+    <span class="sub">{{ s.amount_flagged|inr_short }} on hold</span></a>
+  <a class="panel stat" href="{{ url_for('dashboard', status='Pending') }}">
+    <span class="label">{{ icon('clock', 'ic-sm') }}Waiting for a manager</span><span class="value">{{ s.counts.Pending }}</span>
+    <span class="sub">{{ s.amount_pending|inr_short }} pending approval</span></a>
+  <a class="panel stat" href="{{ url_for('dashboard', status='Approved') }}">
+    <span class="label">{{ icon('wallet', 'ic-sm') }}Ready for payment</span><span class="value">{{ s.ready_count }}</span>
+    <span class="sub">{{ s.ready_amount|inr_short }} approved in the ledger</span></a>
+  <div class="panel stat">
+    <span class="label">{{ icon('indian-rupee', 'ic-sm') }}Est. money saved</span><span class="value">{{ s.saved|inr_short }}</span>
+    <span class="sub">{{ s.hands_free }} invoice{{ 's' if s.hands_free != 1 }} handled with no person</span></div>
+</section>
+
+{% if deadline_counts.overdue or deadline_counts.due_soon %}
+<a class="deadline-strip {{ 'bad' if deadline_counts.overdue }}" href="{{ url_for('deadlines', show='overdue' if deadline_counts.overdue else 'due_soon') }}">
+  {{ icon('calendar-clock', 'ic-sm') }}<span>{% if deadline_counts.overdue %}<b>{{ deadline_counts.overdue }} invoice{{ 's' if deadline_counts.overdue != 1 }} overdue</b>{% endif %}{% if deadline_counts.overdue and deadline_counts.due_soon %} · {% endif %}{% if deadline_counts.due_soon %}{{ deadline_counts.due_soon }} due in the next 7 days{% endif %}. Pay on time to avoid late-payment penalties.</span><span class="go">Payment deadlines →</span></a>
+{% endif %}
+
+<section class="attn" aria-label="What needs attention">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>{{ 'Waiting for your approval' if user.role == 'manager' else 'Needs your attention' }}</h2>
+      <a href="{{ url_for('approvals') if user.role == 'manager' else url_for('dashboard', status='Flagged') }}" style="font-size: 13px">See all</a>
+    </div>
+    <div class="attn-list">
+      {% for i in attention %}
+      <a class="attn-row" href="{{ url_for('invoice', iid=i.id) }}">
+        <span class="ar-ic {{ 'ar-warn' if i.status == 'Pending' else 'ar-bad' }}">{{ icon('clock' if i.status == 'Pending' else 'triangle-alert', 'ic-sm') }}</span>
+        <span style="min-width: 0"><span class="ar-title">{{ i.invoice_number or i.file_name[:24] }}{% if i.id in unread_ids %}<span class="new-pill">New</span>{% endif %}</span>
+          <span class="ar-sub d-block text-truncate">{{ i.vendor_name or 'Vendor unknown' }}: {{ i.decision_reason }}</span></span>
+        <span class="ar-amt">{{ i.total|inr }}<small>{{ i.created_at|ist_day }}</small></span>
+      </a>
+      {% else %}
+        {% call empty('circle-check', 'Nothing is waiting for you right now.') %}{% endcall %}
+      {% endfor %}
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Latest manager decisions</h2>{% if user.role in ('manager','admin') %}<a href="{{ url_for('approvals') }}" style="font-size: 13px">Approvals</a>{% endif %}</div>
+    <div class="attn-list">
+      {% for i in decisions %}
+      <a class="attn-row" href="{{ url_for('invoice', iid=i.id) }}">
+        <span class="ar-ic {{ 'ar-ok' if i.status == 'Approved' else 'ar-bad' }}">{{ icon('circle-check' if i.status == 'Approved' else 'circle-x', 'ic-sm') }}</span>
+        <span style="min-width: 0"><span class="ar-title">{{ i.invoice_number or i.file_name[:24] }} {{ 'approved' if i.status == 'Approved' else 'rejected' }}{% if i.id in unread_ids %}<span class="new-pill">New</span>{% endif %}</span>
+          <span class="ar-sub d-block text-truncate">{{ i.decider }} at {{ i.decided_at|ist_time }}, {{ i.decided_at|ist_day }}{% if i.vendor_name %} · {{ i.vendor_name }}{% endif %}</span></span>
+        <span class="ar-amt">{{ i.total|inr }}<small>{{ 'Ready for payment' if i.status == 'Approved' else 'Cancelled' }}</small></span>
+      </a>
+      {% else %}
+        {% call empty('inbox', 'No manager decisions yet. Approvals and rejections show up here the moment they happen.') %}{% endcall %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<div class="grid-2">
+  <section class="panel panel-pad d-flex flex-column gap-3" aria-label="Status breakdown">
+    <h2>Where invoices ended up</h2>
+    <div class="split" role="img" aria-label="Approved {{ s.counts.Approved }}, pending {{ s.counts.Pending }}, AP review {{ s.counts.Flagged }}, rejected {{ s.counts.Rejected }}">
+      <span class="bg-ok" style="width: {{ s.pct.Approved }}%"></span><span class="bg-warn" style="width: {{ s.pct.Pending }}%"></span>
+      <span class="bg-bad" style="width: {{ s.pct.Flagged }}%"></span><span class="bg-grey" style="width: {{ s.pct.Rejected }}%"></span>
+    </div>
+    <div class="legend">
+      <div><span class="sw bg-ok"></span>Approved · {{ s.counts.Approved }}</div>
+      <div><span class="sw bg-warn"></span>Pending approval · {{ s.counts.Pending }}</div>
+      <div><span class="sw bg-bad"></span>AP review required · {{ s.counts.Flagged }}</div>
+      <div><span class="sw bg-grey"></span>Rejected · {{ s.counts.Rejected }}</div>
+    </div>
+    <div>
+      <div class="kv"><span>Invoices processed</span><b>{{ s.processed }}</b></div>
+      <div class="kv"><span>Approved with no person</span><b>{{ s.auto_rate }}%</b></div>
+      <div class="kv"><span>Average processing time</span><b>{{ s.avg_s }} s</b></div>
+      <div class="kv"><span>AI tokens used (Groq bills in USD)</span><b>{{ '{:,}'.format(s.tokens) }} · ${{ s.cost }}</b></div>
+    </div>
+  </section>
+  <section class="panel panel-pad" aria-label="Safety checks">
+    <div class="d-flex justify-content-between align-items-center mb-2"><h2>Safety checks</h2><a href="{{ url_for('redteam') }}" style="font-size: 13px">Open red-team lab</a></div>
+    <div class="kv"><span>Duplicate or re-sent invoices blocked</span><b>{{ s.dups }}</b></div>
+    <div class="kv"><span>Prompt-injection attempts caught</span><b>{{ s.injections }}</b></div>
+    <div class="kv"><span>Look-alike vendor names flagged</span><b>{{ s.lookalikes }}</b></div>
+    <div class="kv"><span>Bank-detail changes stopped</span><b>{{ s.bank }}</b></div>
+  </section>
+</div>
+
+<section class="panel" aria-label="Invoices" id="invoices">
+  <form class="ask-bar" method="get" role="search" action="{{ url_for('dashboard') }}#invoices">
+    <label for="ask-in">{{ icon('sparkles', 'ic-sm') }}Ask in plain English</label>
+    <input class="form-control" id="ask-in" name="ask" value="{{ ask }}" maxlength="300" placeholder="e.g. flagged invoices from Alpha over ₹50,000 · overdue invoices · invoices due this week">
+    <button class="btn btn-primary" type="submit">Search</button>
+    {% if ask %}<a class="btn btn-outline" href="{{ url_for('dashboard') }}#invoices">Clear</a>{% endif %}
+  </form>
+  {% if asked %}
+  <div class="understood">
+    <span class="muted">Understood as{{ ' (AI translated your words; the search itself is code)' if asked.how == 'ai' }}:</span>
+    {% for c in asked.understood %}<span class="chip on">{{ c }}</span>{% else %}<span class="muted">nothing I recognise</span>{% endfor %}
+    <span class="muted">· {{ asked.count }} invoice{{ 's' if asked.count != 1 }}{% if asked.count %}, {{ asked.total_inr }}{% endif %}</span>
+    {% if asked.message %}<div class="note mt-2">{{ icon('info') }}<span>{{ asked.message }}</span></div>{% endif %}
+  </div>
+  {% endif %}
+  <div class="panel-head">
+    <h2>{{ 'Plain-English results' if ask else ('Search results' if (q or vendor or d_from or d_to) else 'Recent invoices') }}</h2>
+    <div class="chips" role="group" aria-label="Filter by status">
+      <a class="chip {{ 'on' if not status }}" href="{{ url_for('dashboard', q=q or None, vendor=vendor or None, **{'from': d_from or None, 'to': d_to or None}) }}#invoices">All</a>
+      {% for st in ('Approved','Pending','Flagged','Rejected','Processing') %}
+      <a class="chip {{ 'on' if status == st }}" href="{{ url_for('dashboard', status=st, q=q or None, vendor=vendor or None, **{'from': d_from or None, 'to': d_to or None}) }}#invoices">{{ st|status_label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  <form class="filters" method="get" role="search" action="{{ url_for('dashboard') }}#invoices">
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <label>Search<span class="searchbox">{{ icon('search', 'ic-sm') }}<input type="search" name="q" value="{{ q }}" placeholder="Invoice no., vendor, PO or amount" aria-label="Search invoices"></span></label>
+    <label>Vendor<select class="form-select" name="vendor" aria-label="Vendor"><option value="">All vendors</option>
+      {% for v in vendors %}<option {{ 'selected' if v == vendor }}>{{ v }}</option>{% endfor %}</select></label>
+    <label>Invoice date from<input class="form-control" type="date" name="from" value="{{ d_from }}"></label>
+    <label>to<input class="form-control" type="date" name="to" value="{{ d_to }}"></label>
+    <button class="btn btn-outline" type="submit">{{ icon('search', 'ic-sm') }}Apply</button>
+    {% if q or vendor or d_from or d_to or status %}<a class="btn btn-outline" href="{{ url_for('dashboard') }}#invoices">Clear</a>{% endif %}
+  </form>
+  {% if invoices %}
+  <div class="table-wrap">
+    <table class="tbl" style="min-width: 940px">
+      <thead><tr><th>Invoice</th><th>Vendor</th><th>PO</th><th class="num">Amount</th><th>Invoice date</th><th>Due</th><th>Confidence</th><th>Status</th><th>What the agent found</th></tr></thead>
+      <tbody>
+      {% for i in invoices %}
+        <tr>
+          <td><a class="rowlink" href="{{ url_for('invoice', iid=i.id) }}">{{ i.invoice_number or i.file_name[:22] }}</a>{% if i.id in unread_ids %}<span class="new-pill">New</span>{% endif %}</td>
+          <td>{{ i.vendor_name or '—' }}</td>
+          <td class="mono">{{ i.po_number or '—' }}</td>
+          <td class="num">{{ i.total|inr }}</td>
+          <td class="mono">{{ i.invoice_date or '—' }}</td>
+          <td>{% set dd = due[i.id] %}<span class="due due-{{ dd.state }}" title="{{ dd.due_date or '' }}">{{ dd.label }}</span></td>
+          <td>{{ conf_bar(i.confidence) }}</td>
+          <td>{{ badge(i.status) }}</td>
+          <td class="muted">{{ i.decision_reason or 'The agent is working on it' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% if ask %}
+      {% call empty('search', 'No invoices match that question.') %}<a href="{{ url_for('dashboard') }}#invoices">Show all invoices</a>{% endcall %}
+    {% elif q or status or vendor or d_from or d_to %}
+      {% call empty('search', 'No invoices match these filters.') %}<a href="{{ url_for('dashboard') }}">Clear filters</a>{% endcall %}
+    {% else %}
+      {% call empty('inbox', 'No invoices yet. Upload one, or drop files into the invoices_inbox folder.') %}{% endcall %}
+    {% endif %}
+  {% endif %}
+</section>
+
+<div class="grid-2">
+  <section class="panel panel-pad" aria-label="Agent activity">
+    <h2 class="mb-2">Live agent activity <span class="muted" style="font-size: 12.5px; font-weight: 400">times in IST</span></h2>
+    <div id="feed" data-url="{{ url_for('api_feed') }}" aria-live="polite"><span class="skel" style="width: 80%"></span><span class="skel" style="width: 65%"></span><span class="skel" style="width: 72%"></span></div>
+  </section>
+  <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Email drafts">
+    <div class="d-flex justify-content-between align-items-center"><h2>Email drafts waiting</h2><a href="{{ url_for('emails') }}" style="font-size: 13px">See all</a></div>
+    {% for e in drafts %}
+      <a class="mail" style="border-color: var(--line)" href="{{ url_for('email_detail', eid=e.id) }}">
+        <span class="meta"><span>To: {{ e.to_addr }}</span><span>{{ e.purpose|replace('_', ' ') }}</span></span><b>{{ e.subject }}</b>
+      </a>
+    {% else %}
+      {% call empty('mail', 'No drafts waiting.') %}{% endcall %}
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

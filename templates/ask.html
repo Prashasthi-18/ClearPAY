@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}Ask ClearPay{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Ask ClearPay</h1>
+  <p>Questions about invoices, vendors, POs, flags, deadlines and past decisions. Answers come from ClearPay's records{% if llm_on %}, which the AI looks up with read-only tools{% endif %}. If something isn't in the records, it says so. It can't approve, reject or pay anything.</p></div></header>
+<section class="panel chat" id="ask" data-url="{{ url_for('api_ask') }}" data-invoice="{{ ctx_inv.id if ctx_inv else '' }}">
+  {% if ctx_inv %}<div class="note">{{ icon('info') }}<span>Asking about <a href="{{ url_for('invoice', iid=ctx_inv.id) }}" class="mono">{{ ctx_inv.invoice_number or ctx_inv.file_name }}</a>: “this invoice” means that one.</span></div>{% endif %}
+  <div class="chat-log" id="ask-log" aria-live="polite">
+    <div class="chat-msg bot"><span>Hi {{ user.full_name.split(' ')[0] }}, what would you like to know?</span></div>
+  </div>
+  <div class="chip-row" id="ask-suggest">{% for e in examples %}<button type="button" class="chip" data-ask-q="{{ e }}">{{ e }}</button>{% endfor %}</div>
+  <form class="chat-form" id="ask-form">
+    <input class="form-control" id="ask-q" maxlength="500" placeholder="e.g. Why was this invoice flagged?" aria-label="Your question" autocomplete="off">
+    <button class="btn btn-primary" type="submit">{{ icon('send', 'ic-sm') }}Ask</button>
+  </form>
+</section>
+{% endblock %}

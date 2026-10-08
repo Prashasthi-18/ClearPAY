@@ -1,0 +1,11 @@
+{% extends "base.html" if user else "error_plain.html" %}
+{% from "macros.html" import icon %}
+{% block title %}Error {{ code }}{% endblock %}
+{% block content %}
+<div class="panel panel-pad d-flex flex-column gap-2 align-items-start">
+  <div class="d-flex gap-2 align-items-center" style="color: var(--bad)">{{ icon('circle-alert', 'ic-lg') }}<h1 class="m-0" style="font-size: 22px; font-weight: 700">{{ {400: "Something in the request wasn't right", 403: "You don't have access to this", 404: "Page not found", 413: "That file is too large", 500: "Something went wrong"}.get(code, "Error") }}</h1></div>
+  <p class="m-0">{{ msg }}</p>
+  <p class="muted m-0" style="font-size: 13px">Error {{ code }}</p>
+  <a class="btn btn-outline mt-2" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+</div>
+{% endblock %}

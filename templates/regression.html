@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf %}
+{% block title %}Decision regression{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Decision regression</h1><p>Snapshot testing for the agent: did changing the prompt, model or rules change any decisions?</p></div>
+  {% if user.role == 'admin' and t %}<form method="post">{{ csrf() }}<button class="btn btn-primary">Accept latest run as new baseline</button></form>{% endif %}
+</header>
+{% if reg and reg.has_baseline %}
+<div class="grid-2">
+  <section class="panel panel-pad"><div class="muted" style="font-size: 13px">Baseline (approved)</div><b>prompt {{ reg.baseline_meta.prompt_version }} · {{ reg.baseline_meta.model }}</b><div class="muted" style="font-size: 13px">Saved from run {{ reg.baseline_meta.run_at|dt }}</div></section>
+  <section class="panel panel-pad"><div class="muted" style="font-size: 13px">Candidate (latest run)</div><b>prompt {{ reg.candidate_meta.prompt_version }} · {{ reg.candidate_meta.model }}</b><div class="muted" style="font-size: 13px">Run {{ reg.candidate_meta.run_at|dt }}</div>
+    <div class="mt-2"><span class="badge-s {{ 'b-problem' if reg.new_bugs else 'b-ok' }}">CI check: {{ 'fails — ' ~ reg.new_bugs ~ ' new bug(s)' if reg.new_bugs else 'passes' }}</span></div></section>
+</div>
+<section class="grid-stats">
+  <div class="panel stat"><span class="label">Unchanged</span><span class="value">{{ reg.unchanged }}</span></div>
+  <div class="panel stat"><span class="label">Fixed (now correct)</span><span class="value" style="color: var(--ok-ink)">{{ reg.fixed }}</span></div>
+  <div class="panel stat"><span class="label">Broken (now wrong)</span><span class="value" style="color: var(--bad-ink)">{{ reg.new_bugs }}</span></div>
+  <div class="panel stat"><span class="label">Reason changed only</span><span class="value">{{ reg.reason_only }}</span></div>
+</section>
+<section class="panel" aria-label="Decisions that changed">
+  <div class="panel-head"><h2>Decisions that changed</h2><span class="muted" style="font-size: 13px">Compared against the labelled expected outcome</span></div>
+  {% if reg.changes %}
+  <div class="table-wrap"><table class="tbl" style="min-width: 860px"><thead><tr><th>Test file</th><th>Baseline</th><th>Candidate</th><th>Expected</th><th>Verdict</th><th>Issue codes (baseline to candidate)</th></tr></thead><tbody>
+    {% for c in reg.changes %}<tr><td class="mono">{{ c.file }}</td><td>{{ badge(c.baseline) }}</td><td>{{ badge(c.candidate) }}</td><td>{{ badge(c.expected) }}</td>
+      <td><span class="badge-s {{ {'fixed':'b-ok','new bug':'b-problem'}.get(c.verdict, 'b-neutral') }}">{{ c.verdict }}</span></td>
+      <td class="mono" style="font-size: 12px">{{ c.baseline_issues|join(', ') or '—' }} to {{ c.candidate_issues|join(', ') or '—' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty">No decisions changed since the baseline.</div>{% endif %}
+</section>
+{% else %}
+<div class="panel empty">No baseline yet. Run the evaluation, then {% if user.role == 'admin' %}press "Accept latest run as new baseline"{% else %}ask an admin to save it as the baseline{% endif %}, or run <span class="mono">python evaluate.py --save-baseline</span>.</div>
+{% endif %}
+<section class="panel panel-pad d-flex flex-column gap-2" aria-label="CI">
+  <h2>Run it in CI</h2>
+  <p class="muted m-0" style="font-size: 14px">The included GitHub Actions workflow fails the build if a decision that used to be right becomes wrong.</p>
+  <pre class="code">python generate_data.py
+python evaluate.py --mode offline --check-regression   # exit code 1 on a new bug</pre>
+</section>
+{% endblock %}

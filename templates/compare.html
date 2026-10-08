@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf, icon %}
+{% block title %}Rules vs AI{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Rules alone vs rules + AI</h1>
+  <p>20 tricky invoices: different descriptions, different units, partial deliveries, look-alike product names, and cases where earlier managers' decisions matter. Both sides use the same code checks and read the invoices the same way. The only difference is AI smart matching and the AI Investigator. Expected outcomes were written down before running.</p></div>
+  {% if user.role == 'admin' %}<form method="post">{{ csrf() }}<button class="btn btn-primary" type="submit" {{ 'disabled' if state.running }} data-confirm="Run the comparison?" data-confirm-text="It runs 40 invoices on throwaway databases and uses roughly 40-60k Groq tokens (several minutes on the free plan). Live data isn't touched." data-confirm-ok="Run">{{ icon('flask-conical', 'ic-sm') }}Run comparison</button></form>{% endif %}
+</header>
+{% if state.running %}<div class="note" id="cmpstate" data-url="{{ url_for('compare_status') }}">{{ icon('loader-circle', 'spin') }}<span>Running: {{ state.done }} of {{ state.total or 40 }} invoices…</span></div>{% endif %}
+{% if state.error %}<div class="flash error">{{ icon('circle-alert') }}<span>The last run failed: {{ state.error }}</span></div>{% endif %}
+
+{% if r %}
+<section class="grid-stats" aria-label="Results">
+  {% for arm, label in (('rules', 'Rules alone'), ('ai', 'Rules + AI')) %}{% set sm = r[arm].summary %}
+  <div class="panel stat"><span class="label">{{ icon('scale' if arm == 'rules' else 'sparkles', 'ic-sm') }}{{ label }}</span>
+    <span class="value" {% if arm == 'ai' %}style="color: var(--ok)"{% endif %}>{{ sm.correct }}/{{ sm.total }}</span>
+    <span class="sub">matching {{ sm.match_correct }}/{{ sm.match_total }} · history {{ sm.history_correct }}/{{ sm.history_total }}<br>{{ sm.false_alarms }} false alarm{{ 's' if sm.false_alarms != 1 }} · {{ sm.risky }} risky approval{{ 's' if sm.risky != 1 }} · {{ '{:,}'.format(sm.tokens) }} tokens</span></div>
+  {% endfor %}
+  <div class="panel stat"><span class="label">{{ icon('info', 'ic-sm') }}Run</span><span class="sub" style="margin-top: 6px">{{ r.meta.run_at|dt }} · {{ r.meta.model }}</span></div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>Case by case</h2><span class="muted" style="font-size: 13px">Green = expected outcome reached</span></div>
+  <div class="table-wrap"><table class="tbl" style="min-width: 1000px">
+    <thead><tr><th>#</th><th>Case</th><th>Expected</th><th>Rules alone</th><th>Rules + AI</th></tr></thead>
+    <tbody>{% for c in cases %}{% set a = r.rules.rows[loop.index0] %}{% set b = r.ai.rows[loop.index0] %}
+      <tr><td class="muted">{{ c.n }}</td>
+        <td><b>{{ c.category }}</b><div class="muted" style="font-size: 12.5px">{% for d, q, p in c.lines %}“{{ d }}” × {{ q }} @ ₹{{ p }}{{ '; ' if not loop.last }}{% endfor %}</div></td>
+        <td style="font-size: 13px">{% if c.kind == 'history' %}Recommend {{ c.expect_rec|join(' or ')|replace('_', ' ') }}{% else %}{{ c.expect_status|status_label }}{% if c.expect_issue %} ({{ c.expect_issue|replace('_', ' ') }}){% endif %}{% endif %}<div class="muted">{{ c.why }}</div></td>
+        {% for x in (a, b) %}
+        <td class="{{ 'cmp-ok' if x.correct else 'cmp-bad' }}" style="font-size: 13px">
+          {% if c.kind == 'history' %}<b>{{ (x.recommendation or '—')|replace('_', ' ')|capitalize }}</b> <span class="muted">({{ x.rec_mode }})</span>{% else %}{{ badge(x.status) }}{% endif %}
+          <div>{{ x.verdict }}</div>
+          {% if x.ai_matches %}<div class="muted">{{ x.ai_matches|join('; ') }}</div>{% endif %}
+          {% if c.kind != 'history' and x.issues %}<div class="muted">{{ x.issues|join(', ')|replace('_', ' ') }}</div>{% endif %}
+        </td>{% endfor %}
+      </tr>{% endfor %}</tbody></table></div>
+</section>
+{% else %}
+<section class="panel panel-pad"><p class="m-0">No comparison has been run yet. {% if user.role == 'admin' %}Press “Run comparison” (needs the Groq key), or run <span class="mono">python compare_ai.py</span>.{% else %}An admin can run it.{% endif %}</p>
+  <h2 class="mt-3">The 20 cases</h2>
+  {% for c in cases %}<div class="kv"><span>{{ c.n }}. {{ c.category }}: {% for d, q, p in c.lines %}“{{ d }}” × {{ q }}{{ '; ' if not loop.last }}{% endfor %}</span><span class="muted">{{ c.why }}</span></div>{% endfor %}
+</section>
+{% endif %}
+{% endblock %}

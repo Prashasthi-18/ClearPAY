@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf %}
+{% block title %}Settings & users{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Settings &amp; users</h1><p>Admins only. Every change is written to the audit log.</p></div></header>
+<div class="grid-2">
+  <form class="panel panel-pad d-flex flex-column gap-3" method="post" aria-label="Rules">
+    {{ csrf() }}<input type="hidden" name="action" value="rules">
+    <h2>Approval rules</h2>
+    <div><label class="form-label" for="a">Auto-approve limit (₹, total incl. GST)</label><input class="form-control" id="a" name="auto_approve_limit" type="number" step="100" value="{{ s.auto_approve_limit|int }}"></div>
+    <div><label class="form-label" for="b">Allowed variance from PO (%)</label><input class="form-control" id="b" name="variance_tolerance_pct" type="number" step="0.5" value="{{ s.variance_tolerance_pct|num }}"></div>
+    <div><label class="form-label" for="c">Min. AI confidence for an automatic decision (0–1)</label><input class="form-control" id="c" name="min_confidence" type="number" step="0.05" value="{{ s.min_confidence|num }}"></div>
+    <div><label class="form-label" for="d">Split-invoice look-back (days)</label><input class="form-control" id="d" name="split_window_days" type="number" value="{{ s.split_window_days }}"></div>
+    <div><label class="form-label" for="e">AP time saved per invoice handled with no person (₹)</label><input class="form-control" id="e" name="cost_saved_per_invoice_inr" type="number" step="50" value="{{ s.cost_saved_per_invoice_inr|int }}"></div>
+    <div><label class="form-label" for="pt">Default payment terms when the invoice states none (days)</label><input class="form-control" id="pt" name="default_payment_terms_days" type="number" min="0" max="365" value="{{ s.default_payment_terms_days }}"></div>
+    <div><label class="form-label" for="mm">Longest payment term for MSME suppliers (days)</label><input class="form-control" id="mm" name="msme_max_days" type="number" min="1" max="365" value="{{ s.msme_max_days }}"></div>
+    <h2 class="mt-2">AI</h2>
+    <div><label class="form-label" for="sm">Min. confidence for an AI item match (0–1)</label><input class="form-control" id="sm" name="smart_match_min_confidence" type="number" step="0.05" min="0" max="1" value="{{ s.smart_match_min_confidence|num }}"></div>
+    <label class="d-flex gap-2 align-items-center"><input type="checkbox" name="auto_investigate" value="1" {{ 'checked' if s.auto_investigate }}> Investigate every flagged invoice automatically (uses Groq tokens; otherwise only when someone asks)</label>
+    <div><label class="form-label" for="f">AP team email</label><input class="form-control" id="f" name="ap_team_email" type="email" value="{{ s.ap_team_email }}"></div>
+    <div><label class="form-label" for="g">Manager email</label><input class="form-control" id="g" name="manager_email" type="email" value="{{ s.manager_email }}"></div>
+    <button class="btn btn-primary align-self-start" type="submit">Save rules</button>
+  </form>
+  <div class="d-flex flex-column gap-3">
+    <section class="panel" aria-label="Users">
+      <div class="panel-head"><h2>Users</h2></div>
+      <table class="tbl"><tbody>
+        {% for u in users %}<tr><td><b>{{ u.username }}</b><div class="muted" style="font-size: 12px">{{ u.full_name }}</div></td><td><span class="badge-s b-{{ u.role }}">{{ role_labels[u.role] }}</span></td>
+          <td>{% if not u.active %}<span class="badge-s b-neutral">Inactive</span>{% elif u.locked_until %}<span class="badge-s b-problem">Locked</span>{% else %}<span class="badge-s b-ok">Active</span>{% endif %}</td>
+          <td class="text-end"><form method="post" class="d-inline">{{ csrf() }}<input type="hidden" name="uid" value="{{ u.id }}">
+            {% if u.locked_until %}<button class="btn btn-outline btn-sm" name="action" value="unlock">Unlock</button>{% endif %}
+            {% if u.id != user.id %}<button class="btn btn-outline btn-sm" name="action" value="toggle" {% if u.active %}data-confirm="Deactivate {{ u.username }}?" data-confirm-text="They are signed out everywhere and can't sign in until an admin activates the account again." data-confirm-ok="Deactivate"{% endif %}>{{ 'Deactivate' if u.active else 'Activate' }}</button>{% endif %}</form></td></tr>{% endfor %}
+      </tbody></table>
+    </section>
+    <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Email sending">
+      <h2>Email sending</h2>
+      <div class="{{ 'flash ok' if mail.real else 'note' }}">{{ mail.label }}</div>
+      <form method="post" class="d-flex gap-2 flex-wrap align-items-end">{{ csrf() }}<input type="hidden" name="action" value="test_email">
+        <div style="flex: 1; min-width: 200px"><label class="form-label" for="tt">Send a test email to</label><input class="form-control" id="tt" name="to" type="email" required placeholder="you@gmail.com"></div>
+        <button class="btn btn-outline" type="submit">Send test email</button></form>
+      <span class="muted" style="font-size: 13px">Sending is set up in the settings file or the host's environment variables (EMAIL_MODE=smtp or brevo). See the README.</span>
+    </section>
+    <form class="panel panel-pad d-flex flex-column gap-2" method="post" aria-label="Reset a password">
+      {{ csrf() }}<input type="hidden" name="action" value="reset_password">
+      <h2>Reset a password</h2>
+      <p class="muted m-0" style="font-size: 13.5px">For someone who forgot theirs. Their open sessions are signed out and they get a security notification.</p>
+      <div class="d-flex gap-2 flex-wrap"><div style="flex: 1; min-width: 140px"><label class="form-label" for="ru">User</label><select class="form-select" id="ru" name="uid">
+        {% for u in users %}<option value="{{ u.id }}">{{ u.username }} ({{ u.full_name }})</option>{% endfor %}</select></div>
+        <div style="flex: 1; min-width: 160px"><label class="form-label" for="rp">New password</label><input class="form-control" id="rp" name="new_password" type="password" required minlength="10" autocomplete="new-password"></div></div>
+      <button class="btn btn-outline align-self-start" type="submit">Reset password</button>
+    </form>
+    <form class="panel panel-pad d-flex flex-column gap-2" method="post" aria-label="Add user">
+      {{ csrf() }}<input type="hidden" name="action" value="add_user">
+      <h2>Add a user</h2>
+      <div class="d-flex gap-2 flex-wrap"><div style="flex: 1; min-width: 140px"><label class="form-label" for="un">Username</label><input class="form-control" id="un" name="username" required></div>
+        <div style="flex: 1; min-width: 140px"><label class="form-label" for="ro">Role</label><select class="form-select" id="ro" name="role"><option value="ap">AP team</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div></div>
+      <div><label class="form-label" for="fn">Full name</label><input class="form-control" id="fn" name="full_name"></div>
+      <div><label class="form-label" for="em">Email</label><input class="form-control" id="em" name="email" type="email"></div>
+      <div><label class="form-label" for="pw">Password (10+ characters, letters and numbers)</label><input class="form-control" id="pw" name="password" type="password" required autocomplete="new-password"></div>
+      <button class="btn btn-primary align-self-start" type="submit">Add user</button>
+    </form>
+  </div>
+</div>
+<section class="panel" aria-label="Vendor emails">
+  <div class="panel-head"><h2>Vendors: email address and MSME status</h2><span class="muted" style="font-size: 13px">Vendor emails always go to these addresses, never to one written on an invoice</span></div>
+  <div class="table-wrap"><table class="tbl" style="min-width: 640px"><tbody>
+    {% for v in vendors %}<tr><td><b>{{ v.name }}</b><div class="muted mono" style="font-size: 12px">{{ v.gstin }} · bank {{ v.bank_account|mask }}</div></td>
+      <td><form method="post" class="d-flex gap-2">{{ csrf() }}<input type="hidden" name="action" value="vendor_email"><input type="hidden" name="vid" value="{{ v.id }}">
+        <input class="form-control" name="email" type="email" value="{{ v.email }}" aria-label="Email for {{ v.name }}" required>
+        <button class="btn btn-outline btn-sm" type="submit">Save</button></form></td>
+      <td class="text-end"><form method="post">{{ csrf() }}<input type="hidden" name="action" value="vendor_msme"><input type="hidden" name="vid" value="{{ v.id }}">
+        <button class="btn btn-outline btn-sm" type="submit" title="Small suppliers (MSME) must be paid within {{ s.msme_max_days }} days">{{ 'MSME: yes' if v.msme else 'MSME: no' }}</button></form></td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

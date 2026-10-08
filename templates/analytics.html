@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, empty %}
+{% block title %}Analytics{% endblock %}
+{% macro bars(items, fmt='inr') -%}
+  {% set mx = (items|map(attribute='amount')|max) if items else 0 %}
+  {% for it in items %}
+  <div class="hbar"><span class="hb-l">{{ it.label }}</span>
+    <span class="hb-t"><span class="hb-f" style="width: {{ ((it.amount / mx) * 100)|round(1) if mx else 0 }}%"></span></span>
+    <span class="hb-v">{{ it.amount|inr_short }}</span></div>
+  {% else %}<div class="muted">No data yet.</div>{% endfor %}
+{%- endmacro %}
+{% block content %}
+<header class="page-head"><div><h1>Analytics</h1><p>What ClearPay is worth to the business: what was spent, what fraud was caught and what money was saved. Every figure is worked out in code from the invoice records.</p></div></header>
+
+<section class="grid-stats" aria-label="Headline numbers">
+  <div class="panel stat"><span class="label">{{ icon('wallet', 'ic-sm') }}Approved spend</span><span class="value">{{ a.spend_total|inr_short }}</span><span class="sub">{{ a.spend_count }} invoice{{ 's' if a.spend_count != 1 }} · {{ a.paid_total|inr_short }} recorded as paid</span></div>
+  <div class="panel stat"><span class="label">{{ icon('shield-alert', 'ic-sm') }}Fraud caught</span><span class="value">{{ a.fraud_count }}</span><span class="sub">{{ a.fraud_amount|inr_short }} stopped before payment</span></div>
+  <div class="panel stat"><span class="label">{{ icon('indian-rupee', 'ic-sm') }}Estimated savings</span><span class="value" style="color: var(--ok)">{{ a.saved.total|inr_short }}</span><span class="sub">duplicates, fraud, overcharges, plus estimated staff time</span></div>
+  <a class="panel stat" href="{{ url_for('deadlines', show='overdue') }}"><span class="label">{{ icon('calendar-clock', 'ic-sm') }}Overdue now</span><span class="value" {% if a.overdue %}style="color: var(--bad)"{% endif %}>{{ a.overdue }}</span><span class="sub">{{ a.overdue_amount|inr_short }} late · {{ a.due_soon }} due within 7 days</span></a>
+</section>
+
+<div class="grid-2">
+  <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Spend by vendor"><h2>Spend by vendor</h2>{{ bars(a.spend_by_vendor) }}
+    <div class="muted" style="font-size: 12.5px">Invoices ready for payment or paid. {{ a.on_hold|inr_short }} more is on hold (flagged or awaiting a manager).</div></section>
+  <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Spend by month"><h2>Spend by month (invoice date)</h2>{{ bars(a.spend_by_month) }}</section>
+</div>
+
+<div class="grid-2">
+  <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Money saved">
+    <h2>Money saved</h2>
+    <div class="kv"><span>Duplicate and re-sent invoices blocked</span><b>{{ a.saved.duplicates|inr }}</b></div>
+    <div class="kv"><span>Other fraud stopped (look-alike vendors, bank changes, manipulated files…)</span><b>{{ a.saved.fraud|inr }}</b></div>
+    <div class="kv"><span>Overcharges caught (billed above the PO, not paid)</span><b>{{ a.saved.overcharges|inr }}</b></div>
+    <div class="kv"><span>AP staff time ({{ a.saved.hands_free }} invoice{{ 's' if a.saved.hands_free != 1 }} handled with no person × {{ a.saved.per_invoice|inr_short }})</span><b>{{ a.saved.staff_time|inr }}</b></div>
+    <div class="kv"><span><b>Total</b></span><b style="color: var(--ok)">{{ a.saved.total|inr }}</b></div>
+    <div class="muted" style="font-size: 12.5px">Each invoice is counted once. Amounts blocked are invoices that were never approved for payment.</div>
+  </section>
+  <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Fraud caught by type">
+    <h2>Fraud caught, by type</h2>
+    {% for t in a.fraud_by_type %}<div class="kv"><span>{{ t.type }}</span><b>{{ t.count }} · {{ t.amount|inr_short }}</b></div>
+    {% else %}{% call empty('shield-check', 'No fraud signals so far.') %}{% endcall %}{% endfor %}
+  </section>
+</div>
+
+<section class="panel panel-pad d-flex flex-column gap-2" aria-label="AI's part">
+  <h2>{{ icon('sparkles') }} The AI's part</h2>
+  <div class="kv"><span>Invoices investigated (AI / rule-based)</span><b>{{ a.ai.investigations }} ({{ a.ai.ai_investigations }} / {{ a.ai.investigations - a.ai.ai_investigations }})</b></div>
+  <div class="kv"><span>People agreed with the Investigator's recommendation</span><b>{% if a.ai.agreement_pct is none %}—{% else %}{{ a.ai.agreement_pct }}% ({{ a.ai.agreed }} of {{ a.ai.decided }} decisions){% endif %}</b></div>
+  <div class="kv"><span>Invoice lines matched by smart matching (then checked in code)</span><b>{{ a.ai.ai_matched_lines }}</b></div>
+  <div class="kv"><span>Groq tokens used (reading + investigations; Groq bills in USD)</span><b>{{ '{:,}'.format(a.ai.tokens) }} · ${{ a.ai.cost_usd }}</b></div>
+  <div class="muted" style="font-size: 12.5px">The AI recommends; people decide. See <a href="{{ url_for('compare') }}">Rules vs AI</a> for a side-by-side test on tricky invoices.</div>
+</section>
+{% endblock %}

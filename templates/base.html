@@ -1,0 +1,122 @@
+{% from "macros.html" import icon, avatar %}
+<!doctype html>
+<html lang="en" data-theme-pref="{{ user.theme if user and user.theme else '' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · ClearPay</title>
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='brand/clearpay-favicon.svg') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='brand/clearpay-favicon-32.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/clearpay-app-icon-180.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body class="{{ 'enter' if just_in }}" data-csrf="{{ csrf_token() }}" data-last-note="{{ last_note_id }}"
+      data-notes-url="{{ url_for('api_notifications') }}" data-notes-read-url="{{ url_for('api_notifications_read') }}"
+      data-icons="{{ url_for('static', filename='icons.svg') }}">
+{% set ep = request.endpoint %}
+<div class="app">
+  <nav class="side" aria-label="Main">
+    <a class="brand" href="{{ url_for('dashboard') }}">
+      <img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt="">
+      <span><b>ClearPay</b><small>Accounts payable</small></span>
+    </a>
+    <div class="nav-group">
+      <div class="nav-title">Workspace</div>
+      <a class="nav-link-x {{ 'active' if ep in ('dashboard','invoice') }}" href="{{ url_for('dashboard') }}">{{ icon('layout-dashboard') }}Dashboard</a>
+      {% if user.role in ('manager','admin') %}
+      <a class="nav-link-x {{ 'active' if ep == 'approvals' }}" href="{{ url_for('approvals') }}">{{ icon('circle-check') }}Approvals {% if pending_count %}<span class="nav-count">{{ pending_count }}</span>{% endif %}</a>
+      {% endif %}
+      {% if user.role in ('ap','admin') %}
+      <a class="nav-link-x {{ 'active' if ep == 'upload' }}" href="{{ url_for('upload') }}">{{ icon('upload') }}Upload invoice</a>
+      {% endif %}
+      <a class="nav-link-x {{ 'active' if ep == 'ask_page' }}" href="{{ url_for('ask_page') }}">{{ icon('sparkles') }}Ask ClearPay</a>
+      <a class="nav-link-x {{ 'active' if ep == 'deadlines' }}" href="{{ url_for('deadlines') }}">{{ icon('calendar-clock') }}Payment deadlines</a>
+      <a class="nav-link-x {{ 'active' if ep in ('pos','po_new','po_edit') }}" href="{{ url_for('pos') }}">{{ icon('file-text') }}Purchase orders</a>
+      <a class="nav-link-x {{ 'active' if ep == 'vendors_page' }}" href="{{ url_for('vendors_page') }}">{{ icon('building-2') }}Vendors</a>
+      <a class="nav-link-x {{ 'active' if ep == 'analytics' }}" href="{{ url_for('analytics') }}">{{ icon('trending-up') }}Analytics</a>
+      <a class="nav-link-x {{ 'active' if ep in ('emails','email_detail') }}" href="{{ url_for('emails') }}">{{ icon('mail') }}Email drafts</a>
+      <a class="nav-link-x {{ 'active' if ep == 'audit' }}" href="{{ url_for('audit') }}">{{ icon('scroll-text') }}Audit log</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-title">Trust &amp; testing</div>
+      <a class="nav-link-x {{ 'active' if ep == 'evaluation' }}" href="{{ url_for('evaluation') }}">{{ icon('chart-column') }}Evaluation report</a>
+      <a class="nav-link-x {{ 'active' if ep == 'redteam' }}" href="{{ url_for('redteam') }}">{{ icon('shield-alert') }}Red-team lab</a>
+      <a class="nav-link-x {{ 'active' if ep == 'whatif' }}" href="{{ url_for('whatif') }}">{{ icon('sliders-horizontal') }}What-if policy replay</a>
+      <a class="nav-link-x {{ 'active' if ep == 'regression' }}" href="{{ url_for('regression') }}">{{ icon('git-compare') }}Decision regression</a>
+      <a class="nav-link-x {{ 'active' if ep == 'compare' }}" href="{{ url_for('compare') }}">{{ icon('scale') }}Rules vs AI</a>
+      {% if user.role == 'admin' %}
+      <a class="nav-link-x {{ 'active' if ep == 'settings' }}" href="{{ url_for('settings') }}">{{ icon('settings') }}Settings &amp; users</a>
+      {% endif %}
+    </div>
+    <div class="mode-pill">{{ icon('activity', 'ic-sm') }}<span>{% if llm_on %}AI: <b>Groq {{ model }}</b>{% else %}AI: <b>offline rule-based mode</b><br>Add GROQ_API_KEY to .env to use Groq.{% endif %}<br>Database: <b>{{ db_engine }}</b></span></div>
+    <div class="side-foot">
+      {{ avatar(user.full_name) }}
+      <span class="who">{{ user.full_name }}<small>{{ role_labels[user.role] }}</small></span>
+      <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-ghost-dark" type="submit" title="Sign out">{{ icon('log-out', 'ic-sm') }}<span class="sr-only">Sign out</span></button></form>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="where">{{ today_ist.strftime('%A, %d %B %Y') }}</span>
+      <span class="spacer"></span>
+      <div class="pop" data-pop>
+        <button class="icon-btn" id="help-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="help-panel" title="Help: how to use ClearPay">
+          {{ icon('circle-help') }}<span class="sr-only">Help</span>
+        </button>
+        <div class="menu help-panel" id="help-panel" role="dialog" aria-label="Help" data-url="{{ url_for('api_help') }}">
+          <div class="np-head"><b>Help</b><span class="muted" style="font-size: 12px">How to use ClearPay</span></div>
+          <div class="help-log" id="help-log" aria-live="polite">
+            <div class="chat-msg bot"><span>Hi {{ user.full_name.split(' ')[0] }}! I can explain the pages and where to find things. I can't look at invoices or change anything.</span></div>
+            <div class="chip-row" id="help-suggest">
+              {% for qq in ['Where can I see flagged invoices?', 'What does this status mean?', 'What does the risk score mean?', 'Where can I see payment deadlines?', 'How do I view an invoice investigation?'] %}<button type="button" class="chip" data-help-q="{{ qq }}">{{ qq }}</button>{% endfor %}
+            </div>
+          </div>
+          <form class="chat-form" id="help-form"><input class="form-control" id="help-q" maxlength="300" placeholder="Ask how something works…" aria-label="Ask a question about ClearPay" autocomplete="off"><button class="btn btn-primary btn-sm" type="submit" aria-label="Ask">{{ icon('send', 'ic-sm') }}</button></form>
+        </div>
+      </div>
+      <div class="pop" data-pop>
+        <button class="icon-btn" id="bell" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="np" title="Notifications">
+          {{ icon('bell') }}<span class="bell-count" id="bell-count" {{ 'hidden' if not unread_count }}>{{ unread_count }}</span>
+          <span class="sr-only">Notifications, <span id="bell-sr">{{ unread_count }}</span> unread</span>
+        </button>
+        <div class="menu np" id="np" role="dialog" aria-label="Notifications">
+          <div class="np-head"><b>Notifications</b><button class="link-btn" type="button" id="np-readall">Mark all as read</button></div>
+          <div class="np-list" id="np-list"><div style="padding: 14px"><span class="skel" style="width: 70%"></span><span class="skel" style="width: 90%"></span><span class="skel" style="width: 55%"></span></div></div>
+          <div class="np-foot"><a href="{{ url_for('notifications_page') }}">View all notifications</a></div>
+        </div>
+      </div>
+      <div class="pop" data-pop>
+        <button class="acct-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="acct-menu">
+          {{ avatar(user.full_name) }}<span class="d-none d-md-inline">{{ user.full_name.split(' ')[0] }}</span>{{ icon('chevron-down', 'ic-sm') }}
+        </button>
+        <div class="menu" id="acct-menu" role="menu">
+          <div class="head">{{ avatar(user.full_name) }}<div><b>{{ user.full_name }}</b><small>{{ role_labels[user.role] }} · {{ user.email }}</small></div></div>
+          <a role="menuitem" href="{{ url_for('account', tab='profile') }}">{{ icon('user') }}Profile</a>
+          <a role="menuitem" href="{{ url_for('account', tab='appearance') }}">{{ icon('palette') }}Appearance</a>
+          <a role="menuitem" href="{{ url_for('account', tab='security') }}">{{ icon('lock') }}Security</a>
+          <a role="menuitem" href="{{ url_for('account', tab='activity') }}">{{ icon('history') }}Sign-in activity</a>
+          <a role="menuitem" href="{{ url_for('notifications_page') }}">{{ icon('bell') }}Notifications</a>
+          <div class="sep"></div>
+          <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="menu-item" type="submit" role="menuitem">{{ icon('log-out') }}Sign out</button></form>
+        </div>
+      </div>
+    </header>
+    <main class="content">
+      <div class="wrap">
+        {% with msgs = get_flashed_messages(with_categories=true) %}
+          {% for cat, m in msgs %}<div class="flash flash-src {{ 'error' if cat == 'error' else 'ok' }}" role="status" data-toast-kind="{{ cat }}" data-toast-text="{{ m }}">{{ icon('circle-alert' if cat == 'error' else 'circle-check') }}<span>{{ m }}</span></div>{% endfor %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

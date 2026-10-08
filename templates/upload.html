@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf, icon %}
+{% block title %}Upload invoice{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Upload invoice</h1><p>Upload real vendor invoices. The agent checks each one against the original purchase order and shows you a report.</p></div></header>
+
+<div class="grid-2">
+  <section class="panel panel-pad" aria-label="Upload">
+    <form method="post" enctype="multipart/form-data" class="d-flex flex-column gap-3">
+      {{ csrf() }}
+      <label class="drop" id="drop" for="files" style="position: relative">
+        {{ icon('upload') }}
+        <b style="font-size: 16px">Drag and drop invoices here</b>
+        <span class="muted" style="font-size: 13px">or click to browse · PDF, TXT, PNG or JPG · up to 10 MB each · up to 10 files</span>
+        <span class="files" id="filelist"></span>
+        <input id="files" name="files" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" required>
+      </label>
+      <div><label class="form-label" for="po_hint">Match against PO (optional)</label>
+        <input class="form-control" id="po_hint" name="po_hint" maxlength="30" placeholder="Leave blank and the agent finds it on the invoice"></div>
+      <div><label class="form-label" for="report_email">Email the report to (optional)</label>
+        <input class="form-control" id="report_email" name="report_email" type="email" placeholder="name@company.com"></div>
+      <button class="btn btn-primary" type="submit">Process invoices</button>
+      <div class="muted" style="font-size: 13px">Files dropped into the <span class="mono">invoices_inbox</span> folder are picked up automatically too.</div>
+    </form>
+  </section>
+
+  <section class="panel panel-pad d-flex flex-column gap-3" aria-label="Live processing">
+    <h2>{{ 'Processing now' if ids else 'Live processing' }}</h2>
+    {% for id in ids %}
+      <div class="live" data-id="{{ id }}" style="border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px">
+        <div class="d-flex justify-content-between align-items-center gap-2"><b class="mono">Invoice #{{ id }}</b><span class="badge-s live-status b-processing">Processing</span></div>
+        <div class="live-reason muted" style="font-size: 14px" aria-live="polite"></div>
+        <div class="live-steps"></div>
+        <a class="live-link" href="{{ url_for('invoice', iid=id) }}" hidden>Open the full report</a>
+      </div>
+    {% else %}
+      <div class="muted">Upload a file and you'll watch each agent step appear here.</div>
+    {% endfor %}
+  </section>
+</div>
+
+<section class="panel" aria-label="Recent uploads">
+  <div class="panel-head"><h2>Your recent uploads</h2></div>
+  {% if recent %}
+  <div class="table-wrap"><table class="tbl" style="min-width: 640px"><tbody>
+    {% for r in recent %}<tr><td class="mono">{{ r.file_name }}</td><td>{{ badge(r.status) }}</td><td class="muted">{{ r.decision_reason or '' }}</td><td><a href="{{ url_for('invoice', iid=r.id) }}">View report</a></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty">Nothing uploaded yet.</div>{% endif %}
+</section>
+{% endblock %}

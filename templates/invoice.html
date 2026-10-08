@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf, conf_bar, icon %}
+{% block title %}{{ inv.invoice_number or inv.file_name }}{% endblock %}
+{% block content %}
+<div class="crumb no-print"><a href="{{ url_for('dashboard') }}">{{ icon('arrow-left', 'ic-sm') }}Dashboard</a></div>
+
+<header class="panel">
+  <div class="panel-pad d-flex flex-wrap justify-content-between gap-3 align-items-center">
+    <div class="d-flex flex-column gap-1">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <h1 class="mono m-0" style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em">{{ inv.invoice_number or inv.file_name }}</h1>
+        {{ badge(inv.status) }}{% if ledger %}{{ badge(ledger.status) }}{% endif %}
+        {% if risk and risk.score is not none %}<a class="badge-s risk-{{ risk.level|lower }}" href="{{ url_for('vendors_page', v=inv.vendor_id) }}" title="Vendor risk score (information only)">Vendor risk: {{ risk.level }} · {{ risk.score }}/100</a>{% endif %}
+      </div>
+      <div class="muted" style="font-size: 14px">
+        {{ inv.vendor_name or 'Vendor unknown' }}, {{ ('against ' ~ inv.po_number) if inv.po_number else 'no PO' }},
+        {{ 'uploaded by ' ~ uploader.full_name if uploader else ('picked up from the inbox folder' if inv.source == 'inbox' else ('arrived by email from ' ~ inv.email_from if inv.source == 'email' else inv.source)) }}
+        {% if inv.processing_ms %}, processed in {{ '%.2f'|format(inv.processing_ms / 1000) }} s{% endif %}
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap no-print">
+      <a class="btn btn-outline" href="{{ url_for('ask_page', invoice=inv.id) }}">{{ icon('sparkles', 'ic-sm') }}Ask about this invoice</a>
+      <a class="btn btn-outline" href="{{ url_for('invoice_file', iid=inv.id) }}">{{ icon('download', 'ic-sm') }}Download original</a>
+      <button class="btn btn-outline" type="button" data-print>{{ icon('printer', 'ic-sm') }}Save report as PDF</button>
+    </div>
+  </div>
+  <div class="facts" aria-label="Invoice facts">
+    <div><div class="f-l">Amount</div><div class="f-v">{{ inv.total|inr }} <small>INR</small></div></div>
+    <div><div class="f-l">Invoice date</div><div class="f-v">{{ inv.invoice_date or '—' }}</div></div>
+    <div><div class="f-l">Due date</div><div class="f-v">{{ facts.due or '—' }}{% if facts.due %} <span class="due due-{{ facts.deadline.state }}">{{ facts.deadline.label }}</span>{% if facts.terms is not none %} <small>{{ facts.terms }}-day terms</small>{% endif %}{% endif %}</div></div>
+    <div><div class="f-l">Approval</div><div class="f-v">{{ facts.approval }}</div></div>
+    <div><div class="f-l">Payment</div><div class="f-v">{{ facts.payment }}</div></div>
+    <div><div class="f-l">With</div><div class="f-v">{{ facts.owner }}</div></div>
+    <div><div class="f-l">Last updated</div><div class="f-v">{{ facts.updated|ist_time }} <small>{{ facts.updated|ist_day }}</small></div></div>
+  </div>
+</header>
+
+{% if inv.status == 'Processing' %}
+<div class="note">{{ icon('loader-circle', 'spin') }}<span>The agent is still working on this invoice. <a href="{{ url_for('upload', ids=inv.id) }}">Watch it live</a>.</span></div>
+{% endif %}
+
+{% set acts = can('approve', inv) or can('reject', inv) or can('send_to_manager', inv) or can('reprocess', inv) %}
+{% if acts %}
+<section class="panel panel-pad no-print" aria-label="Actions">
+  <form method="post" class="d-flex flex-wrap gap-2 align-items-end">
+    {{ csrf() }}
+    <div class="flex-grow-1" style="min-width: 240px">
+      <label class="form-label" for="comment">Comment (optional, goes into the audit log and the AP email)</label>
+      <input class="form-control" id="comment" name="comment" maxlength="500" placeholder="e.g. Rush order was agreed by phone">
+    </div>
+    {% if can('reprocess', inv) %}<button class="btn btn-outline" formaction="{{ url_for('reprocess', iid=inv.id) }}">{{ icon('refresh-cw', 'ic-sm') }}Process again</button>{% endif %}
+    {% if can('send_to_manager', inv) %}<button class="btn btn-outline" formaction="{{ url_for('send_to_manager', iid=inv.id) }}">{{ icon('send', 'ic-sm') }}Send to manager</button>{% endif %}
+    {% if can('reject', inv) %}<button class="btn btn-reject" formaction="{{ url_for('reject', iid=inv.id) }}" data-confirm="Reject {{ inv.invoice_number or inv.file_name }}?" data-confirm-text="The ledger entry is cancelled and the AP team is told. This can't be undone from ClearPay." data-confirm-ok="Reject invoice">{{ icon('circle-x', 'ic-sm') }}Reject</button>{% endif %}
+    {% if can('approve', inv) %}<button class="btn btn-approve" formaction="{{ url_for('approve', iid=inv.id) }}">{{ icon('check', 'ic-sm') }}Approve</button>{% endif %}
+  </form>
+  {% if investigation %}<div class="muted mt-2" style="font-size: 13px">{{ icon('sparkles', 'ic-sm') }} The Investigator recommends <b>{{ rec_labels[investigation.recommendation] }}</b>. That is advice only: the decision is yours.</div>{% endif %}
+</section>
+{% elif inv.status == 'Pending' and inv.uploaded_by == user.id %}
+<div class="note no-print">{{ icon('info') }}<span>You uploaded this invoice, so a different manager has to approve or reject it (segregation of duties).</span></div>
+{% endif %}
+{% if ledger and ledger.status == 'ready_to_pay' and can('record_payment', inv) %}
+<section class="panel panel-pad no-print" aria-label="Record payment">
+  <form method="post" action="{{ url_for('record_payment', iid=inv.id) }}" class="d-flex flex-wrap gap-2 align-items-end">
+    {{ csrf() }}
+    <div class="flex-grow-1" style="min-width: 240px"><label class="form-label" for="pref">Payment reference (optional): ClearPay doesn't pay; record it here after paying through your bank</label>
+      <input class="form-control" id="pref" name="payment_ref" maxlength="80" placeholder="e.g. UTR / NEFT reference"></div>
+    <button class="btn btn-outline" type="submit" data-confirm="Record payment for {{ inv.invoice_number or inv.file_name }}?" data-confirm-text="Only do this after the money was actually paid outside ClearPay. It is written to the audit log." data-confirm-ok="Record payment">{{ icon('wallet', 'ic-sm') }}Record payment</button>
+  </form>
+</section>
+{% endif %}
+
+{% if inv.decided_by and decider %}
+<div class="flash {{ 'ok' if inv.status == 'Approved' else 'error' }}" role="status">{{ icon('circle-check' if inv.status == 'Approved' else 'circle-x') }}
+  <span><b>{{ 'Approved' if inv.status == 'Approved' else 'Rejected' }} by {{ decider.full_name }}</b> on {{ inv.decided_at|dt }}.
+  {{ 'The ledger entry is ready for payment.' if inv.status == 'Approved' else 'The ledger entry was cancelled.' }}
+  {% if inv.manager_comment %}Comment: “{{ inv.manager_comment }}”{% endif %}</span></div>
+{% endif %}
+{% if inv.summary %}<div class="summary-box"><b>{{ "Agent's check before the manager's decision:" if inv.decided_by else 'In plain words:' }}</b> {{ inv.summary }}</div>{% endif %}
+
+{% if timeline %}
+<section class="panel panel-pad" aria-label="Workflow timeline">
+  <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2 mb-2"><h2>What happened</h2><span class="muted" style="font-size: 12.5px">Times in IST</span></div>
+  <ol class="tl">
+    {% set ns = namespace(day='') %}
+    {% for e in timeline %}
+      {% set d = e.ts|ist_day %}
+      {% if d != ns.day %}<li class="tl-date">{{ d }}</li>{% set ns.day = d %}{% endif %}
+      <li class="{{ 'tl-' ~ e.tone if e.tone in ('ok','warn','bad','person') else '' }}">
+        <span class="tl-time">{{ e.ts|ist_hm }}</span>
+        <span class="tl-dot">{{ icon({'ok': 'check', 'bad': 'x', 'warn': 'clock', 'person': 'user'}.get(e.tone, 'circle-dot')) }}</span>
+        <span class="tl-text">{{ e.text }}</span>
+      </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+{% if issues %}
+<section class="problems {{ 'pending' if inv.status == 'Pending' and not issues|selectattr('severity','equalto','flagged')|list }}" aria-label="Problems found">
+  <h2>{{ 'Where it went wrong' if inv.status in ('Flagged','Rejected') else ('Why it needed a person' if inv.decided_by else 'Why it needs a person') }} · {{ issues|length }} point{{ 's' if issues|length != 1 }}</h2>
+  <div class="issue-grid">
+    {% for i in issues %}
+    <div class="issue {{ i.severity }}">
+      <span class="k">{{ loop.index }} · {{ i.title }}</span>
+      <p>{{ i.detail }}</p>
+      <span class="muted" style="font-size: 12px">To fix: {{ {'vendor':'vendor','manager':'manager decision','ap':'AP team'}[i.fix_by] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="muted" style="font-size: 13px">All maths and rules were checked in code, not by the AI.</div>
+</section>
+{% elif inv.status == 'Approved' %}
+<section class="problems clean"><h2 style="color: var(--ok-ink)">{{ icon('shield-check') }}Every check passed</h2>
+  <div class="checks-ok">{% for c in ['Vendor verified', 'Not a duplicate', 'Line items, GST and total add up', 'Matches the PO', 'Under the auto-approve limit'] %}<span>{{ icon('check', 'ic-sm') }}{{ c }}</span>{% endfor %}</div></section>
+{% endif %}
+
+
+{% if investigation or can('investigate', inv) %}
+<section class="panel panel-pad investigation" id="investigation" aria-label="Investigation">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h2 class="m-0">{{ icon('sparkles') }} Investigation</h2>
+    <div class="d-flex gap-2 align-items-center">
+      {% if investigating %}<span class="muted">{{ icon('loader-circle', 'ic-sm spin') }} Investigating… refresh in a few seconds</span>{% endif %}
+      {% if can('investigate', inv) and not investigating %}<form method="post" action="{{ url_for('investigate', iid=inv.id) }}" class="no-print">{{ csrf() }}<button class="btn btn-outline btn-sm" type="submit">{{ icon('refresh-cw', 'ic-sm') }}{{ 'Investigate again' if investigation else 'Investigate' }}</button></form>{% endif %}
+    </div>
+  </div>
+  {% if investigation %}
+    <div class="rec rec-{{ investigation.recommendation }}">
+      <div><span class="f-l">Recommendation (a person decides)</span>
+        <div class="rec-v">{{ rec_labels[investigation.recommendation] }}{% if investigation.confidence is not none %} <small>confidence {{ '%.2f'|format(investigation.confidence) }}</small>{% endif %}</div></div>
+      <span class="badge-s {{ 'b-agent' if investigation.mode == 'ai' else 'b-neutral' }}">{{ 'AI investigation' if investigation.mode == 'ai' else 'Rule-based (AI unavailable)' }}</span>
+    </div>
+    {% if investigation.stale %}<div class="note">{{ icon('info') }}<span>This investigation was made before the invoice was processed again. Press “Investigate again” for a fresh one.</span></div>{% endif %}
+    {% if investigation.note %}<div class="muted" style="font-size: 13px">{{ investigation.note }}</div>{% endif %}
+    <p class="m-0">{{ investigation.summary }}</p>
+    {% if investigation.findings %}<div><b style="font-size: 13px">Evidence</b><ul class="findings">{% for f in investigation.findings %}<li>{{ f }}</li>{% endfor %}</ul></div>{% endif %}
+    <div class="grid-2 inv-grid">
+      <div><b style="font-size: 13px">How it investigated</b>
+        <ol class="inv-steps">{% for st in investigation.steps %}<li><span class="mono">{{ st.tool }}</span> <span class="muted">{{ st.summary }}</span></li>{% endfor %}</ol></div>
+      <div><b style="font-size: 13px">Similar past cases decided by people</b>
+        {% for c in investigation.similar %}<div class="sim"><span class="mono">{{ c.invoice }}</span> {{ badge(c.decision) }} <span class="muted">{{ c.vendor }}{% if c.shared_problems %} · {{ c.shared_problems|join(', ')|replace('_', ' ') }}{% endif %}</span>{% if c.comment %}<div class="muted">“{{ c.comment }}”{% if c.decided_by %} — {{ c.decided_by }}{% endif %}</div>{% endif %}</div>
+        {% else %}<div class="muted">None found.</div>{% endfor %}</div>
+    </div>
+    {% if investigation.email %}<a class="mail" style="border-color: var(--line)" href="{{ url_for('email_detail', eid=investigation.email.id) }}"><span class="meta"><span>Draft to the vendor: {{ investigation.email.to_addr }}</span><span>{{ investigation.email.status }} · review before sending</span></span><b>{{ investigation.email.subject }}</b></a>
+    {% elif investigation.recommendation == 'ask_vendor' %}<div class="muted" style="font-size: 13px">No email was drafted: with fraud signs, call the vendor on the phone number already on file.</div>{% endif %}
+    <div class="muted" style="font-size: 12.5px">{{ investigation.created_at|dt }} · {{ '{:,}'.format((investigation.prompt_tokens or 0) + (investigation.completion_tokens or 0)) }} tokens · The Investigator can only read records. It can't approve, reject, pay or change anything.</div>
+  {% else %}
+    <p class="muted m-0">No investigation yet. The Investigator reads this invoice, its PO, the vendor's history and similar past decisions, then recommends what to do. It never decides.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if cmp and (cmp.found or cmp.invoice_total is not none) %}
+<section class="panel" aria-label="Invoice versus purchase order">
+  <div class="panel-head"><h2>Invoice vs original purchase order {{ cmp.po_number or '' }}</h2><span class="muted" style="font-size: 13px">Red rows don't match</span></div>
+  <div class="table-wrap">
+    <table class="tbl" style="min-width: 720px">
+      <thead><tr><th>Field</th><th>On the invoice</th><th>On {{ cmp.po_number or 'the PO' }}</th><th>Result</th></tr></thead>
+      <tbody>
+        {% if cmp.found %}
+          <tr class="{{ 'bad' if not cmp.vendor_ok }}"><td>Vendor</td><td>{{ cmp.invoice_vendor }}</td><td>{{ cmp.po_vendor }}</td><td><span class="badge-s {{ 'b-ok' if cmp.vendor_ok else 'b-problem' }}">{{ 'Match' if cmp.vendor_ok else 'Different vendor' }}</span></td></tr>
+          {% for l in cmp.lines %}
+            {% set bad = (not l.matched) or l.qty_over or l.price_diff or l.amount_wrong %}
+            <tr class="{{ 'bad' if bad }}">
+              <td>Line {{ loop.index }} · {{ l.description }}
+                {% if l.match == 'ai' %}<div class="ai-note"><span class="badge-s b-agent">AI match</span> invoice says “{{ l.inv_description }}”{% if l.factor and l.factor != 1 %}; 1 invoice unit = {{ l.factor|num }} PO units{% endif %}{% if l.ai_reason %}. {{ l.ai_reason }}{% endif %}</div>
+                {% elif not l.matched and l.ai_reason %}<div class="ai-note">Smart matching: {{ l.ai_reason }}</div>{% endif %}</td>
+              <td class="mono">{{ l.inv_qty|num }} × {{ l.inv_price|inr }}{% if l.amount_wrong %} = <s>{{ l.inv_amount|inr }}</s>{% endif %}{% if l.factor and l.factor != 1 and l.po_units is not none %}<div class="muted">= {{ l.po_units|num }} PO units × {{ l.price_per_po_unit|inr }}</div>{% endif %}</td>
+              <td class="mono">{% if l.matched %}{{ l.po_qty|num }} × {{ l.po_price|inr }}{% else %}not on PO{% endif %}</td>
+              <td>{% if not l.matched %}<span class="badge-s b-problem">Not ordered</span>
+                  {% elif l.amount_wrong %}<span class="badge-s b-problem">Should be {{ l.calc_amount|inr }}</span>
+                  {% elif l.qty_over %}<span class="badge-s b-problem">+{{ (l.inv_qty - l.po_qty)|num }} units</span>
+                  {% elif l.price_diff %}<span class="badge-s b-problem">Price {{ '+' if l.inv_price > l.po_price }}{{ (l.inv_price - l.po_price)|inr }}</span>
+                  {% elif l.unit_unknown %}<span class="badge-s b-info">Units not verifiable</span>
+                  {% elif (l.partial if l.partial is defined else l.inv_qty < l.po_qty) %}<span class="badge-s b-info">Partial delivery</span>
+                  {% else %}<span class="badge-s b-ok">Match</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+          {% set sub_ok = cmp.invoice_subtotal is none or (cmp.invoice_subtotal - cmp.computed_subtotal)|abs < 0.02 %}
+          <tr class="{{ 'bad' if not sub_ok }}"><td>Subtotal</td><td class="mono">{{ cmp.invoice_subtotal|inr }}{% if not sub_ok %} <span class="muted">(lines add up to {{ cmp.computed_subtotal|inr }})</span>{% endif %}</td><td class="mono">{{ cmp.po_subtotal|inr }}</td><td><span class="badge-s {{ 'b-ok' if sub_ok else 'b-problem' }}">{{ 'Adds up' if sub_ok else "Doesn't add up" }}</span></td></tr>
+          <tr><td>Tax (GST)</td><td class="mono">{{ cmp.invoice_tax|inr }}</td><td class="mono">{{ cmp.po_tax|inr }}</td><td class="muted">Follows subtotal</td></tr>
+          {% set v = cmp.variance_pct or 0 %}
+          <tr class="{{ 'bad' if v > 0 }}"><td><b>Total</b></td><td class="mono"><b>{{ cmp.invoice_total|inr }}</b></td><td class="mono">{{ cmp.po_total|inr }}{% if cmp.expected_total != cmp.po_total %} <span class="muted">(expected for billed items: {{ cmp.expected_total|inr }})</span>{% endif %}</td>
+            <td><span class="badge-s {{ 'b-ok' if v == 0 else ('b-info' if issues|selectattr('code','equalto','variance_small')|list else 'b-problem') }}">{{ 'Match' if v == 0 else ('+' ~ v ~ '%') }}</span></td></tr>
+        {% else %}
+          <tr class="bad"><td>PO number</td><td class="mono">{{ cmp.po_number or 'none on invoice' }}</td><td>—</td><td><span class="badge-s b-problem">{{ 'Not found' if cmp.reason == 'po_not_found' else 'Missing' }}</span></td></tr>
+          <tr><td>Total</td><td class="mono">{{ cmp.invoice_total|inr }}</td><td>—</td><td class="muted">Nothing to compare against</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<div class="grid-2">
+  <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Original invoice">
+    <h2>Original invoice{% if hl.boxes %} · problems boxed in red{% endif %}</h2>
+    {% if hl.pages %}
+      {% for p in hl.pages %}
+        <div class="doc">
+          <img src="{{ url_for('invoice_page', iid=inv.id, n=loop.index) }}" alt="Page {{ loop.index }} of the invoice">
+          {% set pi = loop.index0 %}
+          {% for b in hl.boxes if b.page == pi %}
+            <div class="hl" style="left: {{ b.left }}%; top: {{ b.top }}%; width: {{ b.width }}%; height: {{ b.height }}%" title="{{ b.label }}"><span>{{ b.label }}</span></div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    {% elif text_view %}
+      <div class="txtdoc">{{ text_view }}</div>
+    {% else %}
+      <div class="muted">No preview for this file ({{ inv.file_type }}). <a href="{{ url_for('invoice_file', iid=inv.id) }}">Download the original</a>.</div>
+    {% endif %}
+  </section>
+
+  <section class="panel panel-pad" aria-label="Agent reasoning">
+    <h2 class="mb-2">Agent's step-by-step reasoning</h2>
+    {% for s in steps %}
+      <div class="step">
+        <div class="dot {{ s.result }}">{% if s.result == 'ok' %}{{ icon('check') }}{% elif s.result in ('problem','blocked') %}{{ icon('triangle-alert') }}{% else %}{{ loop.index }}{% endif %}</div>
+        <div style="min-width: 0">
+          <div class="tool">{{ s.step }} <span class="badge-s b-{{ s.actor_type }}" style="margin-left: 4px">{{ s.actor if s.actor_type not in ('agent','system') else s.actor_type }}</span></div>
+          <div class="msg">{{ s.reason }}</div>
+          <div class="who">{{ s.ts|dt }}</div>
+        </div>
+      </div>
+    {% else %}<div class="muted">No steps logged yet.</div>{% endfor %}
+    <div class="muted mt-2" style="font-size: 13px">{{ inv.agent_mode or '' }} · {{ '{:,}'.format((inv.prompt_tokens or 0) + (inv.completion_tokens or 0)) }} tokens · est. ${{ '%.4f'|format(cost) }} · <a href="{{ url_for('audit', invoice=inv.id) }}">full audit trail</a></div>
+  </section>
+</div>
+
+<div class="grid-2">
+  <section class="panel panel-pad" aria-label="Extracted data">
+    <h2 class="mb-2">What the AI read from the invoice</h2>
+    {% if ex %}
+      <div class="kv"><span>Vendor</span><span>{{ ex.vendor or '—' }}</span></div>
+      <div class="kv"><span>GSTIN</span><span class="mono">{{ ex.vendor_gstin or '—' }}</span></div>
+      <div class="kv"><span>Invoice number</span><span class="mono">{{ ex.invoice_number or '—' }}</span></div>
+      <div class="kv"><span>Date</span><span class="mono">{{ ex.date or '—' }}</span></div>
+      <div class="kv"><span>PO number</span><span class="mono">{{ ex.po_number or '—' }}{% if ex.po_number_raw and ex.po_number_raw != ex.po_number %} <span class="muted">(written “{{ ex.po_number_raw }}”)</span>{% endif %}</span></div>
+      <div class="kv"><span>Line items</span><span>{{ ex.line_items|length }}</span></div>
+      <div class="kv"><span>Subtotal / tax / total</span><span class="mono">{{ ex.subtotal|inr }} / {{ ex.tax|inr }} / {{ ex.total|inr }}</span></div>
+      <div class="kv"><span>Bank account</span><span class="mono">{{ ex.bank_account|mask or '—' }} {{ ex.ifsc or '' }}</span></div>
+      <div class="kv"><span>Read confidence</span><span>{{ conf_bar(ex.confidence) }}</span></div>
+    {% else %}<div class="muted">Nothing could be read from this file.</div>{% endif %}
+    {% if ledger %}<div class="kv"><span>Ledger entry</span><span>{{ badge(ledger.status) }} {{ ledger.amount|inr }} <span class="muted">· no payment made</span></span></div>{% endif %}
+  </section>
+
+  <section class="panel panel-pad d-flex flex-column gap-3" aria-label="Emails" id="email">
+    <h2>Emails about this invoice</h2>
+    {% for e in emails %}
+      <a class="mail" style="border-color: var(--line)" href="{{ url_for('email_detail', eid=e.id) }}">
+        <span class="meta"><span>To: {{ e.to_addr }}</span><span>{{ e.purpose|replace('_',' ') }} · {{ e.status }}</span></span><b>{{ e.subject }}</b>
+      </a>
+    {% else %}<div class="muted">No emails drafted.</div>{% endfor %}
+    <form method="post" action="{{ url_for('compose_email', iid=inv.id) }}" class="d-flex flex-column gap-2 no-print">
+      {{ csrf() }}
+      <div class="d-flex gap-2 flex-wrap">
+        <div style="flex: 1; min-width: 150px"><label class="form-label" for="recipient">Send to</label>
+          <select class="form-select" id="recipient" name="recipient">
+            {% if user.role != 'manager' %}<option value="manager">Manager</option>{% endif %}
+            <option value="vendor">Vendor (address on file)</option>
+            <option value="ap_team">AP team</option><option value="custom" selected>Any email address</option>
+          </select></div>
+        <div style="flex: 1; min-width: 150px"><label class="form-label" for="purpose">Email type</label>
+          <select class="form-select" id="purpose" name="purpose">
+            <option value="report">Check report</option><option value="mismatch">Differences found</option>
+            <option value="missing_info">Missing information</option>
+            {% if user.role != 'manager' %}<option value="approval_request">Approval request</option>{% endif %}
+            <option value="resend_request">Resend file</option><option value="escalation">Needs review</option>
+          </select></div>
+      </div>
+      <div id="to-wrap"><label class="form-label" for="to_email">Email address</label><input class="form-control" id="to_email" name="to_email" type="email" placeholder="name@company.com"></div>
+      <button class="btn btn-primary align-self-start" type="submit">{{ icon('mail', 'ic-sm') }}Draft email</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

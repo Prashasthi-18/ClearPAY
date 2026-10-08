@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf %}
+{% block title %}Email drafts{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Email drafts</h1><p>Emails the agent wrote. Nothing is sent until a person presses Send.</p></div>
+  <div class="chips" role="group" aria-label="Filter by recipient">
+    {% for k, lbl in (('', 'All'), ('manager','Manager'), ('vendor','Vendor'), ('ap_team','AP team'), ('custom','Custom')) %}
+    <a class="chip {{ 'on' if kind == k }}" href="{{ url_for('emails', kind=k or None) }}">{{ lbl }}</a>{% endfor %}
+  </div>
+</header>
+<div class="{{ 'flash ok' if mail.real else 'note' }}">{{ mail.label }}</div>
+<div class="grid-2">
+  <section class="panel" style="padding: 10px; display: flex; flex-direction: column; gap: 4px" aria-label="Email list">
+    {% for m in rows %}
+      <a class="mail {{ 'sel' if sel and sel.id == m.id }}" href="{{ url_for('email_detail', eid=m.id) }}">
+        <span class="meta"><span class="badge-s {{ {'manager':'b-pending','vendor':'b-problem','ap_team':'b-ok','custom':'b-neutral'}[m.recipient_type] }}">{{ {'manager':'Manager','vendor':'Vendor','ap_team':'AP team','custom':'Custom'}[m.recipient_type] }}</span>
+          <span>{{ m.created_at|dt }} · {{ m.status }}</span></span>
+        <b>{{ m.subject }}</b><span class="muted" style="font-size: 13px">To: {{ m.to_addr }}</span>
+      </a>
+    {% else %}<div class="empty">No emails yet.</div>{% endfor %}
+  </section>
+  <section class="panel panel-pad" aria-label="Selected email">
+    {% if sel %}
+    <form method="post" class="d-flex flex-column gap-3">
+      {{ csrf() }}
+      {% if sel.status == 'failed' and sel.last_error %}<div class="flash error">Last attempt failed: {{ sel.last_error }}</div>{% endif %}
+      <div class="d-flex gap-2 align-items-center flex-wrap"><span class="badge-s b-{{ {'sent':'ok','failed':'problem'}.get(sel.status, 'pending') }}">{{ sel.status|capitalize }}</span>
+        <span class="muted" style="font-size: 13px">{{ sel.purpose|replace('_',' ')|capitalize }} · written by {{ sel.created_by }}{% if sel.invoice_id %} · <a href="{{ url_for('invoice', iid=sel.invoice_id) }}">open invoice</a>{% endif %}</span></div>
+      <div><label class="form-label" for="to_addr">To</label><input class="form-control" id="to_addr" name="to_addr" type="email" value="{{ sel.to_addr if '@' in sel.to_addr else '' }}" placeholder="{{ sel.to_addr }}" required></div>
+      <div><label class="form-label" for="subject">Subject</label><input class="form-control" id="subject" name="subject" maxlength="200" value="{{ sel.subject }}"></div>
+      <div><label class="form-label" for="body">Message</label><textarea class="form-control" id="body" name="body" rows="14" style="line-height: 1.5">{{ sel.body }}</textarea></div>
+      <div class="d-flex gap-2 justify-content-end flex-wrap">
+        {% if sel.invoice_id %}<button class="btn btn-outline" name="action" value="regenerate">Regenerate</button>{% endif %}
+        <button class="btn btn-outline" name="action" value="save">Save draft</button>
+        <button class="btn btn-primary" name="action" value="send" data-busy-text="Sending…" data-busy-icon="send">{{ ('Send again' if sel.status == 'sent' else 'Send now') if mail.real else 'Send (demo)' }}</button>
+      </div>
+    </form>
+    {% else %}<div class="empty">Pick an email to read or edit it.</div>{% endif %}
+  </section>
+</div>
+{% endblock %}

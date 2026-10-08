@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, csrf, icon, empty %}
+{% block title %}Payment deadlines{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>Payment deadlines</h1>
+  <p>Every unpaid invoice by due date, so nobody pays late, least of all small suppliers. ClearPay only tracks deadlines. It never starts a payment: a person pays through the bank and records it here.</p></div></header>
+<section class="grid-stats" aria-label="Deadline numbers">
+  <a class="panel stat" href="{{ url_for('deadlines', show='overdue') }}"><span class="label">{{ icon('triangle-alert', 'ic-sm') }}Overdue</span><span class="value" style="color: var(--bad)">{{ counts.overdue }}</span><span class="sub">{{ amounts.overdue|inr_short }} late</span></a>
+  <a class="panel stat" href="{{ url_for('deadlines', show='due_soon') }}"><span class="label">{{ icon('clock', 'ic-sm') }}Due in the next 7 days</span><span class="value">{{ counts.due_soon }}</span><span class="sub">{{ amounts.due_soon|inr_short }}</span></a>
+  <div class="panel stat"><span class="label">{{ icon('calendar-clock', 'ic-sm') }}Due later</span><span class="value">{{ counts.ok }}</span><span class="sub">{{ counts.unknown }} without a date</span></div>
+  <div class="panel stat"><span class="label">{{ icon('info', 'ic-sm') }}How due dates are set</span><span class="sub" style="margin-top: 6px">Due date on the invoice, else its payment terms, else {{ s.default_payment_terms_days }} days. MSME suppliers: at most {{ s.msme_max_days }} days.</span></div>
+</section>
+<section class="panel">
+  <div class="panel-head"><h2>Unpaid invoices</h2>
+    <div class="chips">{% for k, lbl in (('open', 'All unpaid'), ('overdue', 'Overdue'), ('due_soon', 'Due within 7 days')) %}<a class="chip {{ 'on' if show == k }}" href="{{ url_for('deadlines', show=k) }}">{{ lbl }}</a>{% endfor %}</div></div>
+  {% if rows %}
+  <div class="table-wrap"><table class="tbl" style="min-width: 900px">
+    <thead><tr><th>Invoice</th><th>Vendor</th><th class="num">Amount</th><th>Invoice date</th><th>Due date</th><th>Deadline</th><th>Status</th><th></th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr class="{{ 'bad' if r.due.state == 'overdue' }}">
+        <td><a class="rowlink" href="{{ url_for('invoice', iid=r.id) }}">{{ r.invoice_number or r.file_name[:22] }}</a></td>
+        <td>{{ r.vendor_name or '—' }}{% if r.vendor_msme %} <span class="badge-s b-pending" title="Small supplier: must be paid within {{ s.msme_max_days }} days">MSME</span>{% endif %}</td>
+        <td class="num">{{ r.total|inr }}</td><td class="mono">{{ r.invoice_date or '—' }}</td><td class="mono">{{ r.due.due_date or '—' }}</td>
+        <td><span class="due due-{{ r.due.state }}">{{ r.due.label }}</span></td>
+        <td>{{ badge(r.status) }}{% if r.ledger_status %} {{ badge(r.ledger_status) }}{% endif %}</td>
+        <td class="text-end">{% if r.ledger_status == 'ready_to_pay' and can('record_payment', r) %}
+          <form method="post" action="{{ url_for('record_payment', iid=r.id) }}">{{ csrf() }}<button class="btn btn-outline btn-sm" type="submit" data-confirm="Record payment for {{ r.invoice_number or r.file_name }}?" data-confirm-text="Only after the money was actually paid outside ClearPay." data-confirm-ok="Record payment">Record payment</button></form>
+          {% elif r.status != 'Approved' %}<span class="muted" style="font-size: 12.5px">needs a decision first</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody></table></div>
+  {% else %}{% call empty('circle-check', 'Nothing here. No unpaid invoices in this view.') %}{% endcall %}{% endif %}
+</section>
+{% endblock %}

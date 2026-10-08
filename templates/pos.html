@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "macros.html" import badge, icon %}
+{% block title %}Purchase orders{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Purchase orders</h1><p>The original orders sent to vendors. Every invoice is checked against these. {{ 'You can create and edit them.' if can('po_manage') else 'Only an admin can create or change a purchase order.' }}</p></div>
+  {% if can('po_manage') %}<a class="btn btn-primary" href="{{ url_for('po_new') }}">{{ icon('plus', 'ic-sm') }}New purchase order</a>{% endif %}
+  <form class="searchbox" method="get" role="search"><input type="search" name="q" value="{{ q }}" placeholder="Search PO or vendor" aria-label="Search purchase orders"></form>
+</header>
+<div class="grid-2">
+  <section class="panel" aria-label="All purchase orders">
+    <div class="table-wrap"><table class="tbl" style="min-width: 600px">
+      <thead><tr><th>PO</th><th>Vendor</th><th class="num">Ordered</th><th>Billed so far</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for p in rows %}
+        {% set pct = ((p.billed / p.total) * 100)|round|int if p.total else 0 %}
+        {% set st = 'Has issue' if p.flagged else ('Fully billed' if pct >= 100 else ('Partly billed' if pct > 0 else ('Awaiting approval' if p.pending else 'Open'))) %}
+        <tr class="{{ 'sel' if po and po.po_number == p.po_number }}">
+          <td><a class="rowlink" href="{{ url_for('pos', po=p.po_number, q=q or None) }}">{{ p.po_number }}</a></td>
+          <td>{{ p.vendor_name }}</td><td class="num">{{ p.total|inr }}</td>
+          <td><span class="conf"><span class="bar" style="width: 80px"><span class="{{ 'bg-ok' if pct >= 100 else 'bg-accent' }}" style="width: {{ [pct,100]|min }}%"></span></span><span class="mono" style="font-size: 13px">{{ pct }}%</span></span></td>
+          <td><span class="badge-s {{ {'Has issue':'b-problem','Fully billed':'b-ok','Partly billed':'b-pending','Awaiting approval':'b-pending','Open':'b-agent'}[st] }}">{{ st }}</span></td>
+        </tr>
+      {% else %}<tr><td colspan="5" class="empty">No purchase orders match.</td></tr>{% endfor %}
+      </tbody></table></div>
+    {% if total > rows|length %}<div class="muted" style="padding: 12px 22px; font-size: 13px">Showing the first {{ rows|length }} of {{ total }} purchase orders. Search by PO number or vendor to find the others.</div>{% else %}<div class="muted" style="padding: 12px 22px; font-size: 13px">{{ total }} purchase order{{ 's' if total != 1 }}</div>{% endif %}
+  </section>
+  {% if po %}
+  <section class="panel panel-pad d-flex flex-column gap-3" aria-label="{{ po.po_number }} details">
+    <div class="d-flex justify-content-between align-items-start gap-2"><div><h2 class="mono" style="font-size: 20px">{{ po.po_number }}</h2><div class="muted" style="font-size: 14px">{{ po.vendor_name }} · issued {{ po.issue_date }} · {{ po.status }}</div></div>
+      {% if can('po_manage') %}<a class="btn btn-outline btn-sm" href="{{ url_for('po_edit', po_number=po.po_number) }}">{{ icon('pencil', 'ic-sm') }}Edit</a>{% endif %}</div>
+    <table class="tbl"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Line total</th></tr></thead><tbody>
+      {% for l in po.lines %}<tr><td>{{ l.description }}</td><td class="num">{{ l.quantity|num }}</td><td class="num">{{ l.unit_price|inr }}</td><td class="num">{{ (l.quantity * l.unit_price)|inr }}</td></tr>{% endfor %}
+      <tr><td colspan="3" class="muted">GST {{ (po.tax_rate * 100)|round|int }}%</td><td class="num">{{ po.tax|inr }}</td></tr>
+      <tr><td colspan="3"><b>PO total</b></td><td class="num"><b>{{ po.total|inr }}</b></td></tr>
+    </tbody></table>
+    <div><b style="font-size: 13px">Invoices against this PO</b>
+      {% for i in invs %}<a class="mail mt-2" style="border-color: var(--line)" href="{{ url_for('invoice', iid=i.id) }}"><span class="meta"><span class="mono">{{ i.invoice_number or i.file_name }}</span>{{ badge(i.status) }}</span><b>{{ i.total|inr }}</b></a>
+      {% else %}<div class="muted mt-1">None yet.</div>{% endfor %}</div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

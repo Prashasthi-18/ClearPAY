@@ -1,0 +1,183 @@
+{
+  "meta": {
+    "run_at": "2026-10-02T10:15:54+00:00",
+    "mode": "offline",
+    "model": "rule-based",
+    "prompt_version": "v1"
+  },
+  "decisions": {
+    "01_clean_match.pdf": {
+      "status": "Approved",
+      "issues": []
+    },
+    "02_clean_match.txt": {
+      "status": "Approved",
+      "issues": []
+    },
+    "03_clean_match.pdf": {
+      "status": "Approved",
+      "issues": []
+    },
+    "04_clean_match.txt": {
+      "status": "Approved",
+      "issues": []
+    },
+    "05_clean_match.pdf": {
+      "status": "Approved",
+      "issues": []
+    },
+    "06_clean_match.txt": {
+      "status": "Approved",
+      "issues": []
+    },
+    "07_clean_match.pdf": {
+      "status": "Approved",
+      "issues": []
+    },
+    "08_clean_match.txt": {
+      "status": "Approved",
+      "issues": []
+    },
+    "09_clean_match.pdf": {
+      "status": "Approved",
+      "issues": []
+    },
+    "10_clean_match.txt": {
+      "status": "Approved",
+      "issues": []
+    },
+    "11_over_limit.pdf": {
+      "status": "Pending",
+      "issues": [
+        "over_limit"
+      ]
+    },
+    "12_over_limit.pdf": {
+      "status": "Pending",
+      "issues": [
+        "over_limit"
+      ]
+    },
+    "13_over_limit.pdf": {
+      "status": "Pending",
+      "issues": [
+        "over_limit"
+      ]
+    },
+    "14_over_limit.pdf": {
+      "status": "Pending",
+      "issues": [
+        "over_limit"
+      ]
+    },
+    "15_small_variance.pdf": {
+      "status": "Pending",
+      "issues": [
+        "variance_small",
+        "price_diff"
+      ]
+    },
+    "16_small_variance.txt": {
+      "status": "Pending",
+      "issues": [
+        "variance_small",
+        "price_diff"
+      ]
+    },
+    "17_small_variance.pdf": {
+      "status": "Pending",
+      "issues": [
+        "variance_small",
+        "price_diff"
+      ]
+    },
+    "18_wrong_total.pdf": {
+      "status": "Flagged",
+      "issues": [
+        "total_math",
+        "variance_large"
+      ]
+    },
+    "19_wrong_total.txt": {
+      "status": "Flagged",
+      "issues": [
+        "line_math",
+        "subtotal_math",
+        "total_math",
+        "variance_large"
+      ]
+    },
+    "20_wrong_total.pdf": {
+      "status": "Flagged",
+      "issues": [
+        "subtotal_math",
+        "total_math",
+        "variance_large"
+      ]
+    },
+    "21_large_mismatch.pdf": {
+      "status": "Flagged",
+      "issues": [
+        "variance_large",
+        "qty_over"
+      ]
+    },
+    "22_large_mismatch.txt": {
+      "status": "Flagged",
+      "issues": [
+        "variance_large",
+        "price_diff"
+      ]
+    },
+    "23_duplicate.pdf": {
+      "status": "Rejected",
+      "issues": [
+        "duplicate"
+      ]
+    },
+    "24_duplicate.txt": {
+      "status": "Rejected",
+      "issues": [
+        "duplicate"
+      ]
+    },
+    "25_duplicate.pdf": {
+      "status": "Rejected",
+      "issues": [
+        "duplicate"
+      ]
+    },
+    "26_missing_po.pdf": {
+      "status": "Flagged",
+      "issues": [
+        "missing_po"
+      ]
+    },
+    "27_missing_po.txt": {
+      "status": "Flagged",
+      "issues": [
+        "missing_po"
+      ]
+    },
+    "28_unknown_vendor.pdf": {
+      "status": "Flagged",
+      "issues": [
+        "unknown_vendor",
+        "po_vendor",
+        "over_billed"
+      ]
+    },
+    "29_corrupted_file.pdf": {
+      "status": "Flagged",
+      "issues": [
+        "unreadable"
+      ]
+    },
+    "30_po_not_found.txt": {
+      "status": "Flagged",
+      "issues": [
+        "po_not_found"
+      ]
+    }
+  }
+}

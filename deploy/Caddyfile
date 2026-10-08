@@ -1,0 +1,7 @@
+# Caddy gets and renews the HTTPS certificate by itself and passes visitors to ClearPay.
+# Replace clearpay.example.com with your own domain (its DNS must already point at this server).
+# Install:  sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+clearpay.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8000
+}

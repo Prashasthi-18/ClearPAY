@@ -1,0 +1,20 @@
+# systemd service: keeps ClearPay running, restarts it if it crashes, starts it at boot.
+# Install:  sudo cp deploy/clearpay.service /etc/systemd/system/clearpay.service
+[Unit]
+Description=ClearPay (accounts payable automation)
+After=network.target
+
+[Service]
+User=clearpay
+Group=clearpay
+WorkingDirectory=/home/clearpay/clearpay
+# The app reads /home/clearpay/clearpay/.env itself. ONE worker, several threads (see wsgi.py).
+ExecStart=/home/clearpay/clearpay/.venv/bin/gunicorn --workers 1 --threads 4 --timeout 60 --bind 127.0.0.1:8000 --access-logfile - wsgi:app
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

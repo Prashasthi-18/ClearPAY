@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, icon, empty %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Notifications</h1><p>Approvals, rejections and invoices that need you. Opening one marks it as read.</p></div>
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <div class="chips" role="group" aria-label="Show">
+      <a class="chip {{ 'on' if show == 'all' }}" href="{{ url_for('notifications_page') }}">All</a>
+      <a class="chip {{ 'on' if show == 'unread' }}" href="{{ url_for('notifications_page', show='unread') }}">Unread{% if unread_count %} ({{ unread_count }}){% endif %}</a>
+    </div>
+    {% if unread_count %}<form method="post" action="{{ url_for('api_notifications_read') }}">{{ csrf() }}<input type="hidden" name="id" value="all">
+      <button class="btn btn-outline" type="submit">{{ icon('check', 'ic-sm') }}Mark all as read</button></form>{% endif %}
+  </div>
+</header>
+<section class="panel" style="padding: 6px">
+  {% for n in items %}
+  <a class="note-item k-{{ n.kind }} {{ 'read' if n.read_at else 'unread' }}" href="{{ url_for('open_notification', nid=n.id) }}">
+    <span class="ni-ic">{{ icon({'approved': 'circle-check', 'rejected': 'circle-x', 'needs_approval': 'clock', 'attention': 'triangle-alert', 'failed': 'circle-alert', 'security': 'shield-alert'}.get(n.kind, 'bell'), 'ic-sm') }}</span>
+    <span class="ni-body"><span class="ni-title d-block">{{ n.title }}</span><span class="ni-text d-block">{{ n.body }}</span><span class="ni-time d-block">{{ n.created_at|dt }}</span></span>
+  </a>
+  {% else %}
+    {% call empty('bell', 'No unread notifications.' if show == 'unread' else 'No notifications yet. Manager decisions and invoices that need you will appear here.') %}{% endcall %}
+  {% endfor %}
+</section>
+{% endblock %}

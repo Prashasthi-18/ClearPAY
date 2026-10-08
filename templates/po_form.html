@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, icon %}
+{% block title %}{{ 'Edit ' ~ form.po_number if edit else 'New purchase order' }}{% endblock %}
+{% block content %}
+<div class="crumb"><a href="{{ url_for('pos', po=form.po_number if edit else None) }}">{{ icon('arrow-left', 'ic-sm') }}Purchase orders</a></div>
+<header class="page-head"><div><h1>{{ 'Edit ' ~ form.po_number if edit else 'New purchase order' }}</h1>
+  <p>Admins only. Totals and GST are worked out in code, and every change goes into the audit log.{% if edit %} Invoices already checked keep their results; new checks use the new lines.{% endif %}</p></div></header>
+<form class="panel panel-pad d-flex flex-column gap-3" method="post">
+  {{ csrf() }}
+  <div class="d-flex gap-3 flex-wrap">
+    <div style="min-width: 160px"><label class="form-label" for="pn">PO number</label>
+      <input class="form-control mono" id="pn" name="po_number" value="{{ form.po_number }}" {{ 'readonly' if edit else 'required' }} maxlength="20"></div>
+    <div style="flex: 1; min-width: 220px"><label class="form-label" for="vd">Vendor</label>
+      <select class="form-select" id="vd" name="vendor_id" required><option value="">Choose…</option>
+        {% for v in vendors %}<option value="{{ v.id }}" {{ 'selected' if form.vendor_id|string == v.id|string }}>{{ v.name }}</option>{% endfor %}</select></div>
+    <div><label class="form-label" for="dt">Issue date</label><input class="form-control" id="dt" type="date" name="issue_date" value="{{ form.issue_date }}" required></div>
+    <div style="width: 120px"><label class="form-label" for="tx">GST %</label><input class="form-control" id="tx" type="number" step="0.01" min="0" max="50" name="tax_pct" value="{{ form.tax_pct }}"></div>
+    {% if edit %}<div><label class="form-label" for="st">Status</label><select class="form-select" id="st" name="status">
+      {% for o in ('open', 'closed') %}<option {{ 'selected' if form.status == o }}>{{ o }}</option>{% endfor %}</select></div>{% endif %}
+  </div>
+  <div class="table-wrap"><table class="tbl" style="min-width: 600px">
+    <thead><tr><th>#</th><th>Item description</th><th class="num">Quantity</th><th class="num">Unit price (₹)</th></tr></thead>
+    <tbody>
+    {% for i in range(rows) %}{% set ln = form.lines[i] if form.lines and i < form.lines|length else none %}
+      <tr><td class="muted">{{ i + 1 }}</td>
+        <td><input class="form-control" name="desc_{{ i }}" maxlength="120" value="{{ ln[0] if ln else '' }}" aria-label="Line {{ i + 1 }} description"></td>
+        <td><input class="form-control text-end" name="qty_{{ i }}" inputmode="decimal" value="{{ ln[1]|num if ln else '' }}" aria-label="Line {{ i + 1 }} quantity"></td>
+        <td><input class="form-control text-end" name="price_{{ i }}" inputmode="decimal" value="{{ ln[2] if ln else '' }}" aria-label="Line {{ i + 1 }} unit price"></td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">{{ 'Save changes' if edit else 'Create purchase order' }}</button>
+    <a class="btn btn-outline" href="{{ url_for('pos') }}">Cancel</a></div>
+</form>
+{% endblock %}

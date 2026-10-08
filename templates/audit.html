@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Audit log</h1><p>Every step by the agent and every action by a person, with the reason. Entries can't be edited or deleted.</p></div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <span class="badge-s {{ 'b-ok' if chain_ok else 'b-problem' }}" style="font-size: 13px; padding: 6px 12px">{{ 'Log integrity verified' if chain_ok else 'Log integrity broken at entry #' ~ broken }}</span>
+    <a class="btn btn-outline" href="{{ url_for('audit_csv', **f) }}">Export log (CSV)</a>
+  </div>
+</header>
+<form class="panel panel-pad" method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end" aria-label="Filters">
+  <div><label class="form-label" for="fi">Invoice (id or number)</label><input class="form-control" id="fi" name="invoice" value="{{ f.invoice }}"></div>
+  <div><label class="form-label" for="fw">Who</label><select class="form-select" id="fw" name="who">
+    {% for v, l in (('', 'Everyone'), ('agent','Agent'), ('system','System'), ('ap','AP team'), ('manager','Manager'), ('admin','Admin')) %}<option value="{{ v }}" {{ 'selected' if f.who == v }}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label class="form-label" for="fs">Step</label><select class="form-select" id="fs" name="step"><option value="">All steps</option>
+    {% for s in steps %}<option {{ 'selected' if f.step == s }}>{{ s }}</option>{% endfor %}</select></div>
+  <div><label class="form-label" for="fd">Date (UTC day)</label><input class="form-control" id="fd" name="date" type="date" value="{{ f.date }}"></div>
+  <button class="btn btn-primary" type="submit">Apply filters</button>
+</form>
+<section class="panel" aria-label="Log entries">
+  <div class="table-wrap"><table class="tbl" style="min-width: 960px">
+    <thead><tr><th>Time (IST)</th><th>Invoice</th><th>Who</th><th>Step</th><th>Result</th><th>Reason</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr class="{{ 'sel' if sel and sel.id == r.id }}">
+        <td class="mono" style="font-size: 13px; white-space: nowrap"><a href="{{ url_for('audit', entry=r.id, **f) }}" style="text-decoration: none">{{ r.ts|dt }}</a></td>
+        <td>{% if r.invoice_id %}<a class="rowlink" href="{{ url_for('invoice', iid=r.invoice_id) }}">{{ r.invoice_number or ('#' ~ r.invoice_id) }}</a>{% else %}—{% endif %}</td>
+        <td><span class="badge-s b-{{ r.actor_type }}">{{ r.actor }}</span></td>
+        <td class="mono" style="font-size: 13px; color: var(--accent)">{{ r.step }}</td>
+        <td><span class="badge-s b-{{ r.result }}">{{ r.result }}</span></td>
+        <td class="muted">{{ r.reason }}</td>
+      </tr>
+    {% else %}<tr><td colspan="6" class="empty">No entries match these filters.</td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
+{% if sel %}
+<section class="panel panel-pad d-flex flex-column gap-2" aria-label="Entry details">
+  <h2>Entry #{{ sel.id }} · {{ sel.ts|dt }} · {{ sel.step }}</h2>
+  <pre class="code">{{ sel.detail_json|fromjson|tojson(indent=2) }}</pre>
+  <div class="muted mono" style="font-size: 12px; word-break: break-all">hash {{ sel.hash }}<br>prev {{ sel.prev_hash }}</div>
+</section>
+{% endif %}
+{% endblock %}

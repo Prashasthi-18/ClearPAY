@@ -1,0 +1,18 @@
+{% macro icon(name, cls='') -%}
+<svg class="ic {{ cls }}" aria-hidden="true" focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#{{ name }}"></use></svg>
+{%- endmacro %}
+{% macro badge(status) -%}
+<span class="badge-s b-{{ (status or 'neutral')|lower|replace(' ', '_') }}">{{ status|status_label }}</span>
+{%- endmacro %}
+{% macro csrf() -%}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{%- endmacro %}
+{% macro conf_bar(c) -%}
+  {% if c is not none %}
+  <span class="conf" title="Read confidence"><span class="bar"><span class="{{ 'bg-bad' if c < 0.7 else ('bg-warn' if c < 0.9 else 'bg-ok') }}" style="width: {{ (c * 100)|int }}%"></span></span><span class="num" style="font-size: 13px">{{ '%.2f'|format(c) }}</span></span>
+  {% else %}<span class="muted">—</span>{% endif %}
+{%- endmacro %}
+{% macro avatar(name, cls='') -%}
+<span class="avatar {{ cls }}" style="--av: {{ name|avatar_color }}" aria-hidden="true">{{ name|initials }}</span>
+{%- endmacro %}
+{% macro empty(icon_name, text) -%}
+<div class="empty">{{ icon(icon_name) }}<span>{{ text }}</span>{{ caller() if caller is defined else '' }}</div>
+{%- endmacro %}
