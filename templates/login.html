@@ -13,12 +13,11 @@
   <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
-<body data-icons="{{ url_for('static', filename='icons.svg') }}">
+<body class="login-page" data-icons="{{ url_for('static', filename='icons.svg') }}">
 <div class="login-wrap">
+  <div class="ls-bg" aria-hidden="true"><div class="ls-aurora"><i></i><i></i><i></i></div><div class="ls-grid"></div></div>
   {# Showcase: an invoice being checked, on a loop. Decorative only, hidden from screen readers. #}
   <aside class="login-stage" aria-hidden="true">
-    <div class="ls-aurora"><i></i><i></i><i></i></div>
-    <div class="ls-grid"></div>
     <div class="ls-brand"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
     <div class="ls-copy">
       <p class="ls-eyebrow"><span class="ls-pulse"></span>AP agent · live check</p>
