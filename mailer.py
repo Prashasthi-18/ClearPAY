@@ -65,8 +65,8 @@ def _one_line(text, limit=250):
     return " ".join(str(text or "").split())[:limit]
 
 
-def send(to, subject, body):
-    """Send one email. Returns (ok, delivered_to, error_message)."""
+def send(to, subject, body, html=None):
+    """Send one email (plain text, plus an optional HTML version). Returns (ok, delivered_to, error_message)."""
     if not is_real():
         return True, None, None                       # mock mode: caller just marks it sent
     target = redirect_to() or to
@@ -80,16 +80,21 @@ def send(to, subject, body):
         body = (f"[TEST MODE] This email was meant for: {to}\n"
                 f"It was redirected to you because EMAIL_REDIRECT_TO is set in the settings.\n"
                 f"{'-' * 60}\n\n{body}")
+        if html:
+            from html import escape
+            html = (f'<p style="font:13px sans-serif;color:#8C1E15">[TEST MODE] This email was meant for: {escape(to)}</p>' + html)
     subject = ("[TEST] " if redirect_to() else "") + _one_line(subject)
     if mode() == "brevo":
-        return _send_brevo(target, subject, body)
-    return _send_smtp(target, subject, body)
+        return _send_brevo(target, subject, body, html)
+    return _send_smtp(target, subject, body, html)
 
 
-def _send_brevo(target, subject, body):
+def _send_brevo(target, subject, body, html=None):
     """Brevo transactional email API: one HTTPS POST. The sender must be verified in the Brevo account."""
     payload = {"sender": {"name": _one_line(os.getenv("MAIL_FROM_NAME", "ClearPay"), 80), "email": os.getenv("MAIL_FROM", "").strip()},
                "to": [{"email": target}], "subject": subject, "textContent": body}
+    if html:
+        payload["htmlContent"] = html
     headers = {"accept": "application/json", "content-type": "application/json", "api-key": os.getenv("BREVO_API_KEY", "").strip()}
     try:
         conn = http.client.HTTPSConnection("api.brevo.com", timeout=20, context=ssl.create_default_context())
@@ -117,7 +122,7 @@ def _send_brevo(target, subject, body):
     return False, None, f"Brevo error {resp.status}: {detail or 'no details'}"
 
 
-def _send_smtp(target, subject, body):
+def _send_smtp(target, subject, body, html=None):
     from_addr = os.getenv("MAIL_FROM") or os.getenv("SMTP_USER")
     msg = EmailMessage()
     msg["From"] = f"{_one_line(os.getenv('MAIL_FROM_NAME', 'ClearPay'), 80)} <{from_addr}>"
@@ -126,6 +131,8 @@ def _send_smtp(target, subject, body):
     msg["Date"] = formatdate(localtime=True)
     msg["Message-ID"] = make_msgid(domain=from_addr.split("@")[-1])
     msg.set_content(body)
+    if html:
+        msg.add_alternative(html, subtype="html")
 
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT", "587"))

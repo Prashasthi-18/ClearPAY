@@ -22,6 +22,7 @@ from flask import (Flask, Response, abort, flash, g, jsonify, redirect, render_t
 from markupsafe import Markup, escape
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import access_requests
 import agent
 import assistant
 import db
@@ -73,7 +74,7 @@ def before():
         security.check_csrf()
     # MFA_REQUIRED_ROLES: someone in such a role without MFA can only reach the page that sets it up
     if g.user and not g.user["mfa_enabled"] and mfa.required_for(g.user["role"]) and \
-            request.endpoint not in ("account", "logout", "static", "healthz", "google_start", "google_callback"):
+            request.endpoint not in ("account", "logout", "static", "healthz", "google_start", "google_callback", "access_request"):
         if request.method == "GET" and not request.path.startswith("/api/"):
             flash("Your role must use two-factor authentication. Set up your authenticator app to continue.", "error")
         return redirect(url_for("account", tab="security"))
@@ -430,7 +431,9 @@ def google_callback():
         return _google_signup(info)
     if not user["active"]:
         waiting = not user["has_password"] and not user["last_login_at"]
-        session["login_error"] = ("Your account request is waiting for an administrator to approve it." if waiting
+        declined = waiting and access_requests.latest_decision(user["id"]) == "rejected"
+        session["login_error"] = ("Your access request was declined. Contact your administrator." if declined else
+                                  "Your account request is waiting for an administrator to approve it." if waiting
                                   else "This account is deactivated. Contact your administrator.")
         return redirect(url_for("login"))
     locked = security.locked_message(user)
@@ -449,13 +452,16 @@ def _google_signup(info):
     username, n = base, 2
     while db.query("SELECT 1 FROM users WHERE username=?", (username,), one=True):
         username, n = f"{base}{n}", n + 1
-    db.execute("""INSERT INTO users(username, full_name, email, role, password_hash, active, has_password, google_sub, google_email)
-                  VALUES (?,?,?,?,?,?,?,?,?)""", (username, info["name"], info["email"], "ap",
-                                                  generate_password_hash(secrets.token_urlsafe(32)), 0, 0, info["sub"], info["email"]))
-    db.log_audit(None, username, "system", "signup_requested", "info", f"{info['name']} ({info['email']}) signed up with Google")
+    uid = db.execute("""INSERT INTO users(username, full_name, email, role, password_hash, active, has_password, google_sub, google_email)
+                        VALUES (?,?,?,?,?,?,?,?,?)""", (username, info["name"], info["email"], "ap",
+                                                        generate_password_hash(secrets.token_urlsafe(32)), 0, 0, info["sub"], info["email"]))
+    sent_to = access_requests.notify_admins(db.query("SELECT * FROM users WHERE id=?", (uid,), one=True),
+                                            access_requests.create(uid))
+    db.log_audit(None, username, "system", "signup_requested", "info",
+                 f"{info['name']} ({info['email']}) signed up with Google; approval email to {sent_to} admin(s)")
     notifications.notify(notifications.ids_with_role("admin"), "security", "New account request",
-                         f"{info['name']} ({info['email']}) signed up with Google as {username}. Open Settings & users and "
-                         "press Activate to let them in (AP team role), or leave the account inactive.", None, "system")
+                         f"{info['name']} ({info['email']}) signed up with Google as {username}. Approve or reject it from "
+                         "the email, or in Settings & users.", None, "system")
     session["login_notice"] = ("Request sent. An administrator has to approve your account; after that, "
                                "sign in with Google again.")
     return redirect(url_for("login"))
@@ -475,6 +481,26 @@ def _google_link(info, uid):
         notifications.security_event(uid, "Google account connected", f"{info['email']} can now be used to sign in to ClearPay.")
         flash(f"Connected. You can now sign in with {info['email']}.", "ok")
     return redirect(url_for("account", tab="security"))
+
+
+@app.route("/access-request/<token>", methods=["GET", "POST"])
+def access_request(token):
+    """Opened from the admin's email. Viewing changes nothing; the decision needs a button press (POST)."""
+    if security.rate_limited("access", 30, 60):
+        abort(429)
+    found = access_requests.find(token)
+    if found is None:
+        abort(404)
+    result = None
+    if request.method == "POST" and found["state"] == "open":
+        decision = {"approve": "approved", "reject": "rejected"}.get(request.form.get("decision"))
+        if decision:
+            by = g.user["full_name"] if g.user and g.user["role"] == "admin" else "An admin (via email link)"
+            access_requests.decide(found["user"]["id"], decision, by)
+            found = access_requests.find(token)
+            result = decision
+    return render_template("access_request.html", r=found, token=token, result=result,
+                           suggested=request.args.get("d") if request.args.get("d") in ("approve", "reject") else None)
 
 
 @app.route("/logout", methods=["POST"])
@@ -1620,6 +1646,13 @@ def settings():
                                              f"{g.user['full_name']} reset your two-factor authentication at {ist_now():%H:%M IST}. "
                                              "Set up your authenticator app again in Account → Security.")
                 flash(f"Two-factor authentication reset for {u['username']}. They can set it up again after signing in.", "ok")
+        elif act == "reject_request" and (request.form.get("uid") or "").isdigit():
+            u = db.query("SELECT * FROM users WHERE id=?", (int(request.form["uid"]),), one=True)
+            if u and not u["active"] and not u["has_password"] and not u["last_login_at"]:
+                if not db.query("SELECT 1 FROM access_requests WHERE user_id=? AND decision IS NULL", (u["id"],), one=True):
+                    access_requests.create(u["id"])                  # requests made before email approval existed
+                access_requests.decide(u["id"], "rejected", g.user["full_name"])
+                flash(f"Rejected the access request from {u['full_name']}.", "ok")
         elif act in ("unlock", "toggle") and (request.form.get("uid") or "").isdigit():
             uid = int(request.form["uid"])
             if uid == g.user["id"] and act == "toggle":
@@ -1628,6 +1661,9 @@ def settings():
                 u = db.query("SELECT * FROM users WHERE id=?", (uid,), one=True)
                 if act == "unlock":
                     db.execute("UPDATE users SET failed_attempts=0, locked_until=NULL WHERE id=?", (uid,))
+                elif not u["active"] and access_requests.latest_decision(uid) is None and \
+                        db.query("SELECT 1 FROM access_requests WHERE user_id=?", (uid,), one=True):
+                    access_requests.decide(uid, "approved", g.user["full_name"])     # activating = approving the request
                 else:
                     db.execute("UPDATE users SET active=? WHERE id=?", (0 if u["active"] else 1, uid))
                     if u["active"]:
@@ -1635,7 +1671,9 @@ def settings():
                 db.log_audit(None, g.user["username"], "admin", "user_" + act, "info", f"{act} {u['username']}")
                 flash("User updated.", "ok")
         return redirect(url_for("settings"))
+    decisions = {r["user_id"]: r["decision"] for r in db.query("SELECT user_id, decision FROM access_requests ORDER BY id")}
     return render_template("settings.html", s=db.get_settings(), users=db.query("SELECT * FROM users ORDER BY id"),
+                           decisions=decisions,
                            vendors=db.query("SELECT * FROM vendors ORDER BY name"))
 
 

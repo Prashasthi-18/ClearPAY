@@ -26,13 +26,17 @@
       <div class="panel-head"><h2>Users</h2></div>
       <table class="tbl"><tbody>
         {% for u in users %}<tr><td><b>{{ u.username }}</b><div class="muted" style="font-size: 12px">{{ u.full_name }}</div></td><td><span class="badge-s b-{{ u.role }}">{{ role_labels[u.role] }}</span></td>
-          <td>{% if not u.active %}<span class="badge-s {{ 'b-pending' if not u.has_password and not u.last_login_at else 'b-neutral' }}">{{ 'Awaiting approval' if not u.has_password and not u.last_login_at else 'Inactive' }}</span>{% elif u.locked_until %}<span class="badge-s b-problem">Locked</span>{% else %}<span class="badge-s b-ok">Active</span>{% endif %}
+          {% set awaiting = not u.active and not u.has_password and not u.last_login_at and decisions.get(u.id) != 'rejected' %}
+          {% set declined = not u.active and decisions.get(u.id) == 'rejected' %}
+          <td>{% if awaiting %}<span class="badge-s b-pending">Awaiting approval</span>{% elif declined %}<span class="badge-s b-rejected">Declined</span>{% elif not u.active %}<span class="badge-s b-neutral">Inactive</span>{% elif u.locked_until %}<span class="badge-s b-problem">Locked</span>{% else %}<span class="badge-s b-ok">Active</span>{% endif %}
             {% if u.mfa_enabled %}<span class="badge-s b-ok" title="Two-factor authentication on">2FA</span>{% endif %}
             {% if u.google_sub %}<span class="badge-s b-neutral" title="{{ u.google_email }}">Google</span>{% endif %}</td>
           <td class="text-end"><form method="post" class="d-inline">{{ csrf() }}<input type="hidden" name="uid" value="{{ u.id }}">
             {% if u.locked_until %}<button class="btn btn-outline btn-sm" name="action" value="unlock">Unlock</button>{% endif %}
             {% if u.mfa_enabled %}<button class="btn btn-outline btn-sm" name="action" value="reset_mfa" data-confirm="Reset two-factor for {{ u.username }}?" data-confirm-text="Use this when they lost their phone. Their sessions are signed out and they sign in with just their password (or Google) until they set it up again." data-confirm-ok="Reset 2FA">Reset 2FA</button>{% endif %}
-            {% if u.id != user.id %}<button class="btn btn-outline btn-sm" name="action" value="toggle" {% if u.active %}data-confirm="Deactivate {{ u.username }}?" data-confirm-text="They are signed out everywhere and can't sign in until an admin activates the account again." data-confirm-ok="Deactivate"{% endif %}>{{ 'Deactivate' if u.active else 'Activate' }}</button>{% endif %}</form></td></tr>{% endfor %}
+            {% if awaiting %}<button class="btn btn-approve btn-sm" name="action" value="toggle">Approve</button>
+              <button class="btn btn-reject btn-sm" name="action" value="reject_request" data-confirm="Reject {{ u.full_name }}?" data-confirm-text="They can't sign in, and they get an email saying the request wasn't approved." data-confirm-ok="Reject">Reject</button>
+            {% elif u.id != user.id %}<button class="btn btn-outline btn-sm" name="action" value="toggle" {% if u.active %}data-confirm="Deactivate {{ u.username }}?" data-confirm-text="They are signed out everywhere and can't sign in until an admin activates the account again." data-confirm-ok="Deactivate"{% endif %}>{{ 'Deactivate' if u.active else 'Activate' }}</button>{% endif %}</form></td></tr>{% endfor %}
       </tbody></table>
     </section>
     <section class="panel panel-pad d-flex flex-column gap-2" aria-label="Email sending">

@@ -556,6 +556,18 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 .mfa-codes-row { background: var(--ok-soft); }
 @media print { .mfa-codes-row { display: grid !important; } }
 
+/* access-request page (opened from the admin's email) */
+.ar-card h1 { font-size: 21px; font-weight: 700; margin: 0 0 6px; }
+.ar-person { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); margin-bottom: 6px; }
+.ar-person small { display: block; color: var(--muted); font-size: 13px; }
+.ar-avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; font-weight: 700; flex: none; }
+.ar-result { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 14px; }
+.ar-result .ic { width: 24px; height: 24px; }
+.ar-result.ok { background: var(--ok-bg); color: var(--ok); }
+.ar-result.bad { background: var(--bad-bg); color: var(--bad); }
+.ar-card .btn { height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; }
+.ar-suggest { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 25%, transparent); }
+
 /* showcase panel: shown on wide screens, always dark */
 /* The two halves are independent: each is exactly one screen tall and never pushes the other. If a screen is too
    short, login.js scales the showcase and the card down to fit instead of letting anything be cut off. */

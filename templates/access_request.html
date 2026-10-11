@@ -1,0 +1,57 @@
+{% from "macros.html" import icon %}
+<!doctype html>
+<html lang="en" data-theme-pref="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Access request · ClearPay</title>
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='brand/clearpay-favicon.svg') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body class="login-page" data-icons="{{ url_for('static', filename='icons.svg') }}">
+<div class="login-wrap">
+  <div class="ls-bg" aria-hidden="true"><div class="ls-aurora"><i></i><i></i><i></i></div><div class="ls-grid"></div></div>
+  <div class="login-col" style="max-width: 460px">
+    <div class="login-logo enter-logo"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
+    <div class="panel login-card enter-card ar-card">
+      {% set u = r.user %}
+      {% if result or r.state in ('approved', 'rejected') %}
+        {% set done = result or r.state %}
+        <div class="ar-result {{ 'ok' if done == 'approved' else 'bad' }}">{{ icon('circle-check' if done == 'approved' else 'circle-x') }}</div>
+        <h1>{{ 'Access approved' if done == 'approved' else 'Request rejected' }}</h1>
+        <p class="muted">
+          {% if result %}
+            {% if done == 'approved' %}{{ u.full_name }} can now sign in with Google. They've been emailed.{% else %}{{ u.full_name }} can't sign in. They've been told by email.{% endif %}
+          {% else %}
+            This request was already {{ done }}{% if r.request.decided_by %} by {{ r.request.decided_by }}{% endif %}. Nothing more to do.
+          {% endif %}
+        </p>
+      {% elif r.state == 'expired' %}
+        <div class="ar-result bad">{{ icon('clock') }}</div>
+        <h1>This link expired</h1>
+        <p class="muted">Approve or reject {{ u.full_name }} in ClearPay under <b>Settings &amp; users</b>.</p>
+      {% else %}
+        <h1>Access request</h1>
+        <p class="muted mb-3">Someone signed in with Google and is asking for access to ClearPay.</p>
+        <div class="ar-person">
+          <span class="ar-avatar">{{ (u.full_name or '?')[:1]|upper }}</span>
+          <div><b>{{ u.full_name }}</b><small>{{ u.email }}</small></div>
+        </div>
+        <div class="kv"><span>Role if approved</span><b>{{ role_labels[u.role] }}</b></div>
+        <div class="kv"><span>Requested</span><b>{{ r.request.created_at|dt }}</b></div>
+        <form method="post" class="d-flex gap-2 mt-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-approve flex-fill {{ 'ar-suggest' if suggested == 'approve' }}" name="decision" value="approve" type="submit">{{ icon('check', 'ic-sm') }}Approve</button>
+          <button class="btn btn-reject flex-fill {{ 'ar-suggest' if suggested == 'reject' }}" name="decision" value="reject" type="submit">{{ icon('x', 'ic-sm') }}Reject</button>
+        </form>
+        <p class="form-hint mt-3 mb-0">If you don't know this person, reject the request. This link works once.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -243,3 +243,67 @@ def test_sign_in_with_email_instead_of_username(app):
     c = app.test_client()
     r = password_login(c, "shared@example.com")                 # two accounts share it: refused, like a wrong password
     assert r.status_code == 200 and c.get("/").status_code == 302
+
+
+# ---------------------------------------------------------------- access requests approved from the admin's email
+@pytest.fixture()
+def mails(monkeypatch):
+    import mailer
+    sent = []
+    monkeypatch.setenv("ACCESS_EMAILS_SYNC", "1")
+    monkeypatch.setattr(mailer, "send", lambda to, subject, body, html=None: sent.append((to, subject, body, html)) or (True, to, None))
+    db.execute("UPDATE users SET email='boss@realcompany.com' WHERE username='admin'")
+    return sent
+
+
+def request_link(mails):
+    to, subject, body, html = next(m for m in mails if m[1].startswith("ClearPay access request"))
+    return to, re.search(r"(/access-request/[\w-]+)\?d=approve", body).group(1), html
+
+
+def test_new_google_account_emails_admins_approve_and_reject_links(app, monkeypatch, mails):
+    google_round_trip(app.test_client(), monkeypatch)
+    to, link, html = request_link(mails)
+    assert to == "boss@realcompany.com" and "Approve" in html and "Reject" in html
+    assert db.query("SELECT token_hash FROM access_requests", one=True)["token_hash"] not in link   # only the hash is stored
+    c = app.test_client()
+    page = c.get(link + "?d=approve").text                               # opening the link changes nothing
+    assert "Access request" in page and user("newperson")["active"] == 0
+    c.post(link, data={"decision": "approve", "csrf_token": token(page)})
+    assert user("newperson")["active"] == 1
+    assert any(m[0] == "new.person@example.com" and "approved" in m[1] for m in mails)
+    assert "already approved" in c.get(link).text                        # one-time
+    c = app.test_client()
+    google_round_trip(c, monkeypatch)
+    assert c.get("/").status_code == 200
+
+
+def test_rejected_request_tells_the_person_and_blocks_sign_in(app, monkeypatch, mails):
+    google_round_trip(app.test_client(), monkeypatch)
+    _, link, _ = request_link(mails)
+    c = app.test_client()
+    c.post(link, data={"decision": "reject", "csrf_token": token(c.get(link).text)})
+    assert user("newperson")["active"] == 0
+    c = app.test_client()
+    google_round_trip(c, monkeypatch)
+    assert "was declined" in c.get("/login").text
+
+
+def test_expired_or_unknown_links_do_nothing(app, monkeypatch, mails):
+    google_round_trip(app.test_client(), monkeypatch)
+    _, link, _ = request_link(mails)
+    db.execute("UPDATE access_requests SET expires_at='2000-01-01T00:00:00+00:00'")
+    c = app.test_client()
+    page = c.get(link).text
+    assert "expired" in page
+    c.post(link, data={"decision": "approve", "csrf_token": token(page) if 'csrf_token' in page else ""})
+    assert user("newperson")["active"] == 0
+    assert app.test_client().get("/access-request/not-a-real-token").status_code == 404
+
+
+def test_admin_can_approve_or_reject_in_settings_too(app, monkeypatch, mails):
+    google_round_trip(app.test_client(), monkeypatch)
+    c = app.test_client()
+    password_login(c, "admin")
+    c.post("/settings", data={"action": "reject_request", "uid": user("newperson")["id"], "csrf_token": token(c.get("/settings").text)})
+    assert "Declined" in c.get("/settings").text and user("newperson")["active"] == 0

@@ -305,6 +305,16 @@ CREATE TABLE IF NOT EXISTS users (
     mfa_recovery TEXT,                         -- JSON list of hashed one-time recovery codes
     mfa_enabled_at TEXT
 );
+CREATE TABLE IF NOT EXISTS access_requests (   -- a new Google account asking for access; admins approve by email
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    token_hash TEXT NOT NULL,                  -- SHA-256 of the one-time link token (the token itself is only in the email)
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    decision TEXT,                             -- approved | rejected
+    decided_by TEXT,
+    decided_at TEXT
+);
 CREATE TABLE IF NOT EXISTS user_sessions (     -- one row per sign-in; lets people see and end their sessions
     id TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
