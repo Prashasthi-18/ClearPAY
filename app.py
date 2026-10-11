@@ -779,6 +779,30 @@ def deadlines():
                            s=db.get_settings())
 
 
+@app.route("/deadlines/payment-file.csv")
+@security.role_required("ap", "admin")
+def payment_file_csv():
+    """Approved invoices ready for payment, as a file for the bank or the finance team. ClearPay still never pays:
+    a person uploads this to the bank, then records each payment here."""
+    rows = [r for r in insights.open_deadlines() if r["ledger_status"] == "ready_to_pay"]
+    vendors = {v["id"]: dict(v) for v in db.query("SELECT id, name, gstin, bank_account, ifsc, msme FROM vendors")}
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["invoice_id", "invoice_number", "vendor", "gstin", "bank_account", "ifsc", "msme", "po_number",
+                "amount_inr", "invoice_date", "due_date", "deadline"])
+    safe = lambda v: ("'" + v) if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v   # CSV-injection guard
+    for r in rows:
+        v = vendors.get(r["vendor_id"]) or {}
+        w.writerow([safe(x) for x in (r["id"], r["invoice_number"] or r["file_name"], v.get("name") or r["vendor_name"],
+                                       v.get("gstin"), v.get("bank_account"), v.get("ifsc"),
+                                       "yes" if v.get("msme") else "no", r["po_number"], f"{(r['total'] or 0):.2f}",
+                                       r["invoice_date"], r["due"]["due_date"], r["due"]["label"])])
+    db.log_audit(None, g.user["username"], g.user["role"], "payment_file_export", "info",
+                 f"Exported {len(rows)} invoices ready for payment")
+    return Response(buf.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=payment_file.csv"})
+
+
 @app.route("/vendors")
 @security.login_required
 def vendors_page():

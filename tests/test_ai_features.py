@@ -284,3 +284,21 @@ def test_help_guide_answers_about_the_ui_only():
     assert helpbot.search("Where can I see payment deadlines?")[0][0] == "deadlines"
     assert helpbot.search("What does the risk score mean?")[0][0] == "risk"
     assert helpbot.answer("asdfgh qwerty", use_ai=False)["links"] == []
+
+
+# ---------------------------------------------------------------- payment file
+def test_payment_file_lists_only_ready_to_pay_and_only_for_ap(app):
+    iid = _flagged_invoice()
+    db.execute("UPDATE invoices SET status='Approved' WHERE id=?", (iid,))
+    db.execute("""INSERT INTO ledger(invoice_id, amount, status, created_at, updated_at)
+                  VALUES (?, 1000, 'ready_to_pay', ?, ?)""", (iid, db.now_iso(), db.now_iso()))
+    other = _flagged_invoice()                                               # still flagged: not in the file
+    c, _ = login(app, "manager")
+    assert c.get("/deadlines/payment-file.csv").status_code == 403
+    c, _ = login(app, "ap_user")
+    r = c.get("/deadlines/payment-file.csv")
+    assert r.status_code == 200 and r.mimetype == "text/csv"
+    lines = r.text.strip().splitlines()
+    assert lines[0].startswith("invoice_id,") and len(lines) == 2 and lines[1].startswith(f"{iid},")
+    assert not any(ln.startswith(f"{other},") for ln in lines)
+    assert db.query("SELECT COUNT(*) n FROM audit_log WHERE step='payment_file_export'", one=True)["n"] == 1

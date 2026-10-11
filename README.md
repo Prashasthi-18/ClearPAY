@@ -76,6 +76,7 @@ Evaluation runs skip the Investigator, and investigations run in their own queue
 - **Account pages** from the avatar menu: profile (name, email, department), appearance, security (change password, active sessions with "sign out" / "sign out of all other sessions", security alerts) and sign-in activity (sign-ins, sign-outs, failed attempts, lockouts, with browser, system and network address).
 - **Real sessions:** each sign-in is recorded on the server; signing out, ending a session elsewhere, a password change or deactivation takes effect immediately, and the 30-minute idle timeout is enforced on the server too.
 - **Admin password reset** (Settings & users) backs the "Forgot password?" link on the sign-in page. Reset-by-email isn't built, and the page says so.
+- **Payment file export.** *Payment deadlines → Payment file (CSV)* (AP team and admin) lists every invoice that is ready for payment, with the vendor's GSTIN, bank account, IFSC, MSME flag and due date, ready to upload to the bank. The export is written to the audit log. ClearPay still never pays: a person uploads the file and then records each payment.
 - **Not built, and shown as such:** two-factor authentication, profile photos (initials are used), payments (ClearPay never pays; "Ready for payment" is the last state).
 - Branding: original ClearPay logo in `static/brand/` (full logo for light and dark, mark, favicon SVG/PNG, 180 px app icon). Icons: [Lucide](https://lucide.dev) (ISC licence), bundled as `static/icons.svg`. Motion respects `prefers-reduced-motion`.
 
@@ -83,7 +84,7 @@ Evaluation runs skip the Investigator, and investigations run in their own queue
 
 ```bash
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt                          # versions are pinned; moved the folder? delete .venv and redo these two lines
 cp .env.example .env                                     # Windows: copy .env.example .env
 #   then put your GROQ_API_KEY and a FLASK_SECRET_KEY in .env
 python generate_data.py && python app.py
@@ -100,6 +101,8 @@ Open http://127.0.0.1:5000 and sign in.
 The password for all four is `DEMO_PASSWORD` from `.env` (default `ChangeMe!2026`; change it).
 
 **No Groq key?** The app still runs in *offline rule-based mode*. A built-in parser reads the generated test invoices, and a fixed orchestration replaces the LLM. Real-world invoices need Groq.
+
+**About the data:** vendors, purchase orders and test invoices are synthetic, made by `generate_data.py` (POs can also be loaded from the public Kaggle *Procurement KPI Analysis* dataset with `import_kaggle_pos.py`). No real company's data is included.
 
 **Scanned images (optional):** install the [Tesseract](https://github.com/tesseract-ocr/tesseract) binary for OCR of PNG/JPG and scanned PDFs. Without it, those files are flagged as unreadable and a resend request is drafted.
 
