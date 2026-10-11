@@ -1,4 +1,4 @@
-# Secrets and local settings: never commit these
+﻿# Secrets and local settings: never commit these
 .env
 
 # Python
@@ -21,6 +21,4 @@ Procurement_KPI*.csv
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/
 
-Procurement*KPI*.csv
