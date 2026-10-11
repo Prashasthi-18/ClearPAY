@@ -518,6 +518,34 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 .login-card.has-error { animation: card-in 560ms var(--ease) 120ms both, ls-shake 460ms var(--ease) 700ms both; }
 @keyframes ls-shake { 0%, 100% { translate: 0; } 20% { translate: -6px 0; } 40% { translate: 5px 0; } 60% { translate: -3px 0; } 80% { translate: 2px 0; } }
 
+/* Google button (Google's sign-in button guidance: white, the G logo, "Continue with Google"), divider, MFA step */
+.btn-google { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 44px; padding: 0 16px;
+  background: #fff; color: #1F1F1F; border: 1px solid #DADCE0; border-radius: 9px; font-weight: 600; font-size: 14.5px; text-decoration: none;
+  transition: background var(--t-micro), box-shadow var(--t-comp) var(--ease), border-color var(--t-micro); }
+.btn-google:hover { background: #F8FAFF; color: #1F1F1F; border-color: #C6CBD3; box-shadow: 0 6px 18px -8px rgba(15, 27, 45, .35); }
+.btn-google:focus-visible { outline: none; box-shadow: var(--focus); }
+.btn-google .g-logo { flex: none; }
+[data-theme="dark"] .btn-google { background: #131314; color: #E3E3E3; border-color: #8E918F; }
+[data-theme="dark"] .btn-google:hover { background: #1C1D1F; color: #E3E3E3; }
+.login-or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12.5px; }
+.login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.login-signup { margin: 18px 0 0; text-align: center; font-size: 13.5px; color: var(--muted); }
+.mfa-badge { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; margin-bottom: 14px;
+  background: var(--accent-soft); color: var(--accent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 7%, transparent); }
+.mfa-badge .ic { width: 22px; height: 22px; }
+.mfa-input { font-size: 22px; letter-spacing: .3em; text-align: center; font-variant-numeric: tabular-nums; height: 52px; }
+.mfa-input::placeholder { letter-spacing: .3em; }
+.mfa-steps { margin: 0 0 16px; padding-left: 20px; font-size: 14px; color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; }
+.mfa-setup { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+.mfa-qr { width: 184px; height: 184px; padding: 8px; background: #fff; border-radius: 12px; border: 1px solid var(--line); flex: none; }
+.mfa-qr svg { width: 100%; height: 100%; display: block; }
+.mfa-key { display: inline-block; font-size: 15px; letter-spacing: .06em; padding: 8px 12px; border-radius: 8px; background: var(--surface-2);
+  border: 1px solid var(--line); color: var(--ink); word-break: break-all; user-select: all; }
+.mfa-codes { columns: 2; column-gap: 28px; margin: 0; padding: 14px 18px 14px 38px; border-radius: 10px; background: var(--surface-2);
+  border: 1px dashed var(--line); font-size: 15px; line-height: 1.9; max-width: 380px; }
+.mfa-codes-row { background: var(--ok-soft); }
+@media print { .mfa-codes-row { display: grid !important; } }
+
 /* showcase panel: shown on wide screens, always dark */
 .login-stage { display: none; position: relative; padding: clamp(24px, 4.5vh, 44px) 24px clamp(20px, 4vh, 36px) clamp(32px, 4vw, 64px);
   color: #E8EDF6; flex-direction: column; justify-content: space-between; gap: clamp(14px, 3vh, 28px); min-height: 0; }

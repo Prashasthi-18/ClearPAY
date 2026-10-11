@@ -7,8 +7,10 @@ import csv
 import io
 import json
 import os
+import re
 import secrets
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
@@ -25,10 +27,12 @@ import assistant
 import db
 import email_inbox
 import evaluate
+import google_auth
 import helpbot
 import insights
 import investigator
 import mailer
+import mfa
 import notifications
 import retrieval
 import security
@@ -67,6 +71,12 @@ def before():
     security.load_current_user()
     if request.endpoint not in ("static",):
         security.check_csrf()
+    # MFA_REQUIRED_ROLES: someone in such a role without MFA can only reach the page that sets it up
+    if g.user and not g.user["mfa_enabled"] and mfa.required_for(g.user["role"]) and \
+            request.endpoint not in ("account", "logout", "static", "healthz", "google_start", "google_callback"):
+        if request.method == "GET" and not request.path.startswith("/api/"):
+            flash("Your role must use two-factor authentication. Set up your authenticator app to continue.", "error")
+        return redirect(url_for("account", tab="security"))
 
 
 @app.after_request
@@ -86,7 +96,8 @@ def inject():
             "mail": mailer.status(),
             "watcher": watcher.status(), "mailbox": email_inbox.status(), "unread_count": unread, "last_note_id": last_note,
             "just_in": session.pop("just_in", False) if g.get("user") else False, "today_ist": ist_now(),
-            "show_demo_hint": os.getenv("SHOW_DEMO_HINT", "1") == "1", "db_engine": db.engine()}
+            "show_demo_hint": os.getenv("SHOW_DEMO_HINT", "1") == "1", "db_engine": db.engine(),
+            "google_on": google_auth.enabled(), "google_signup": google_auth.signup_mode() == "request"}
 
 
 # ==========================================================================
@@ -252,6 +263,51 @@ app.jinja_env.globals.update(can=can, csrf_token=security.csrf_token)
 # ==========================================================================
 # Auth
 # ==========================================================================
+MFA_STEP_SECONDS = 300          # time allowed between the password (or Google) and the authenticator code
+
+
+def _safe_next(nxt):
+    return nxt if nxt and nxt.startswith("/") and not nxt.startswith("//") else url_for("dashboard")
+
+
+def _after_first_factor(user, method, nxt):
+    """The password or Google sign-in was right. Ask for the authenticator code when MFA is on, else sign in."""
+    if user["mfa_enabled"]:
+        session.clear()
+        session["mfa_pending"] = {"uid": user["id"], "method": method, "next": nxt, "at": int(time.time())}
+        return redirect(url_for("login_mfa"))
+    return _signed_in(user, method, nxt)
+
+
+def _signed_in(user, method, nxt, second=None):
+    """Every way of signing in ends here: a fresh server-side session, new-device alert, audit entry."""
+    session.clear()                      # new session id on login (prevents fixation)
+    ua = request.headers.get("User-Agent") or ""
+    seen_before = [security.describe_agent(r["user_agent"])[:2] for r in db.query(
+        "SELECT user_agent FROM user_sessions WHERE user_id = ?", (user["id"],))]
+    session["uid"] = user["id"]
+    session["sid"] = security.start_session(user["id"])
+    session["just_in"] = True
+    session.permanent = True
+    browser, os_name, _ = security.describe_agent(ua)
+    if seen_before and (browser, os_name) not in seen_before:
+        notifications.security_event(user["id"], "New sign-in on a new device",
+                                     f"Signed in with {browser} on {os_name} from {request.remote_addr} at "
+                                     f"{ist_now():%H:%M IST}. If this wasn't you, change your password.")
+    how = ({"password": "", "google": " with Google"}[method] +  # nosec B105 - labels, not passwords
+           {None: "", "app": " + authenticator code", "recovery": " + recovery code"}[second])
+    db.log_audit(None, user["username"], user["role"], "user_login", "info", f"{user['full_name']} signed in{how}")
+    if mfa.required_for(user["role"]) and not user["mfa_enabled"]:
+        return redirect(url_for("account", tab="security"))
+    return redirect(_safe_next(nxt))
+
+
+def _login_page(**kw):
+    kw.setdefault("error", session.pop("login_error", None))
+    kw.setdefault("notice", session.pop("login_notice", None))
+    return render_template("login.html", **kw)
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
@@ -262,25 +318,163 @@ def login():
             username = (request.form.get("username") or "").strip()[:50]
             user, error = security.authenticate(username, request.form.get("password", ""))
             if user:
-                session.clear()                      # new session id on login (prevents fixation)
-                ua = request.headers.get("User-Agent") or ""
-                seen_before = [security.describe_agent(r["user_agent"])[:2] for r in db.query(
-                    "SELECT user_agent FROM user_sessions WHERE user_id = ?", (user["id"],))]
-                session["uid"] = user["id"]
-                session["sid"] = security.start_session(user["id"])
-                session["just_in"] = True
-                session.permanent = True
-                browser, os_name, _ = security.describe_agent(ua)
-                if seen_before and (browser, os_name) not in seen_before:
-                    notifications.security_event(user["id"], "New sign-in on a new device",
-                                                 f"Signed in with {browser} on {os_name} from {request.remote_addr} at "
-                                                 f"{ist_now():%H:%M IST}. If this wasn't you, change your password.")
-                db.log_audit(None, user["username"], user["role"], "user_login", "info", f"{user['full_name']} signed in")
-                nxt = request.args.get("next", "")
-                return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else url_for("dashboard"))
+                return _after_first_factor(user, "password", request.args.get("next", ""))
             db.log_audit(None, username or "(blank)", "system", "login_failed", "blocked",
                          f"Failed sign-in from {request.remote_addr}")
-    return render_template("login.html", error=error)
+    return _login_page(error=error) if error else _login_page()
+
+
+def check_second_factor(user, code):
+    """'app' or 'recovery' when the code is right (and records it so it can't be reused), else None."""
+    step = mfa.verify(mfa.unseal(user["mfa_secret"]), code, user["mfa_last_step"])
+    if step is not None:
+        db.execute("UPDATE users SET mfa_last_step=?, failed_attempts=0, locked_until=NULL WHERE id=?", (step, user["id"]))
+        return "app"
+    if mfa.looks_like_recovery_code(code):
+        ok, rest = mfa.use_recovery_code(user["mfa_recovery"], code)
+        if ok:
+            db.execute("UPDATE users SET mfa_recovery=?, failed_attempts=0, locked_until=NULL WHERE id=?", (rest, user["id"]))
+            return "recovery"
+    return None
+
+
+@app.route("/login/mfa", methods=["GET", "POST"])
+def login_mfa():
+    p = session.get("mfa_pending")
+    if not p or time.time() - p["at"] > MFA_STEP_SECONDS:
+        session.pop("mfa_pending", None)
+        if p:
+            session["login_error"] = "The sign-in took too long. Sign in again."
+        return redirect(url_for("login"))
+    user = db.query("SELECT * FROM users WHERE id=? AND active=1", (p["uid"],), one=True)
+    if not user:
+        session.clear()
+        return redirect(url_for("login"))
+    error = None
+    if request.method == "POST":
+        locked = security.locked_message(user)
+        if locked:
+            session.clear()
+            session["login_error"] = locked
+            return redirect(url_for("login"))
+        if security.rate_limited("mfa", 10, 60):
+            error = "Too many attempts from this address. Wait a minute and try again."
+        else:
+            how = check_second_factor(user, request.form.get("code", ""))
+            if how:
+                if how == "recovery":
+                    left = mfa.recovery_left(db.query("SELECT mfa_recovery FROM users WHERE id=?", (user["id"],), one=True)["mfa_recovery"])
+                    db.log_audit(None, user["username"], user["role"], "recovery_code_used", "info", f"{left} recovery codes left")
+                    notifications.security_event(user["id"], "A recovery code was used to sign in",
+                                                 f"Signed in with a recovery code at {ist_now():%H:%M IST}; {left} left. "
+                                                 "If you lost your phone, set up the authenticator app again in Account → Security.")
+                return _signed_in(user, p["method"], p["next"], second=how)
+            db.log_audit(None, user["username"], "system", "mfa_failed", "blocked",
+                         f"Wrong authenticator code from {request.remote_addr}")
+            locked = security.record_failure(user, "wrong authenticator codes")
+            if locked:
+                session.clear()
+                session["login_error"] = locked
+                return redirect(url_for("login"))
+            error = "That code isn't right. Use the current 6-digit code from your authenticator app, or a recovery code."
+    return _login_page(step="mfa", error=error, mfa_name=user["full_name"])
+
+
+# ---- Google sign-in, sign-up and account linking ---------------------------------------------------
+@app.route("/auth/google", methods=["GET", "POST"])
+def google_start():
+    if not google_auth.enabled():
+        abort(404)
+    if security.rate_limited("google", 20, 60):
+        session["login_error"] = "Too many attempts from this address. Wait a minute and try again."
+        return redirect(url_for("login"))
+    link = request.method == "POST" and g.user is not None          # linking only from the account page (CSRF-checked POST)
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "").strip() or url_for("google_callback", _external=True)
+    url, pending = google_auth.start(redirect_uri)
+    pending.update(link_uid=g.user["id"] if link else None, next=request.args.get("next", ""))
+    session["google_pending"] = pending
+    return redirect(url)
+
+
+@app.route("/auth/google/callback")
+def google_callback():
+    pending = session.pop("google_pending", None)
+    linking = bool(pending and pending.get("link_uid"))
+    try:
+        info = google_auth.finish(request.args, pending)
+    except google_auth.GoogleError as e:
+        db.log_audit(None, g.user["username"] if g.user else "(google)", "system", "login_failed", "blocked",
+                     f"Google sign-in failed from {request.remote_addr}: {e}")
+        if linking and g.user:
+            flash(str(e), "error")
+            return redirect(url_for("account", tab="security"))
+        session["login_error"] = str(e)
+        return redirect(url_for("login"))
+    if linking:
+        return _google_link(info, pending["link_uid"])
+    if not google_auth.domain_allowed(info["email"]):
+        session["login_error"] = f"{info['email']} can't sign in to ClearPay. Use your work Google account."
+        db.log_audit(None, info["email"], "system", "login_failed", "blocked", "Google account outside the allowed domains")
+        return redirect(url_for("login"))
+    user = db.query("SELECT * FROM users WHERE google_sub=?", (info["sub"],), one=True)
+    if user is None:                                  # first time: link by verified email if exactly one account has it
+        same = db.query("SELECT * FROM users WHERE LOWER(email)=? AND google_sub IS NULL AND active=1", (info["email"],))
+        if len(same) == 1:
+            user = same[0]
+            db.execute("UPDATE users SET google_sub=?, google_email=? WHERE id=?", (info["sub"], info["email"], user["id"]))
+            db.log_audit(None, user["username"], user["role"], "google_linked", "info", f"Connected Google account {info['email']}")
+            notifications.security_event(user["id"], "Google account connected",
+                                         f"{info['email']} can now be used to sign in to ClearPay. If this wasn't you, "
+                                         "disconnect it in Account → Security and tell your administrator.")
+    if user is None:
+        return _google_signup(info)
+    if not user["active"]:
+        waiting = not user["has_password"] and not user["last_login_at"]
+        session["login_error"] = ("Your account request is waiting for an administrator to approve it." if waiting
+                                  else "This account is deactivated. Contact your administrator.")
+        return redirect(url_for("login"))
+    locked = security.locked_message(user)
+    if locked:
+        session["login_error"] = locked
+        return redirect(url_for("login"))
+    return _after_first_factor(user, "google", pending.get("next", ""))
+
+
+def _google_signup(info):
+    if google_auth.signup_mode() == "off":
+        db.log_audit(None, info["email"], "system", "login_failed", "blocked", "Google sign-in with no ClearPay account")
+        session["login_error"] = f"There's no ClearPay account for {info['email']}. Ask your administrator to add you."
+        return redirect(url_for("login"))
+    base = re.sub(r"[^a-z0-9_]", "", info["email"].split("@")[0].lower())[:30] or "user"
+    username, n = base, 2
+    while db.query("SELECT 1 FROM users WHERE username=?", (username,), one=True):
+        username, n = f"{base}{n}", n + 1
+    db.execute("""INSERT INTO users(username, full_name, email, role, password_hash, active, has_password, google_sub, google_email)
+                  VALUES (?,?,?,?,?,?,?,?,?)""", (username, info["name"], info["email"], "ap",
+                                                  generate_password_hash(secrets.token_urlsafe(32)), 0, 0, info["sub"], info["email"]))
+    db.log_audit(None, username, "system", "signup_requested", "info", f"{info['name']} ({info['email']}) signed up with Google")
+    notifications.notify(notifications.ids_with_role("admin"), "security", "New account request",
+                         f"{info['name']} ({info['email']}) signed up with Google as {username}. Open Settings & users and "
+                         "press Activate to let them in (AP team role), or leave the account inactive.", None, "system")
+    session["login_notice"] = ("Request sent. An administrator has to approve your account; after that, "
+                               "sign in with Google again.")
+    return redirect(url_for("login"))
+
+
+def _google_link(info, uid):
+    if not g.user or g.user["id"] != uid:
+        return redirect(url_for("login"))
+    other = db.query("SELECT id FROM users WHERE google_sub=?", (info["sub"],), one=True)
+    if other and other["id"] != uid:
+        flash("That Google account is already connected to another ClearPay user.", "error")
+    elif not google_auth.domain_allowed(info["email"]):
+        flash(f"{info['email']} is outside the allowed domains. Use your work Google account.", "error")
+    else:
+        db.execute("UPDATE users SET google_sub=?, google_email=? WHERE id=?", (info["sub"], info["email"], uid))
+        db.log_audit(None, g.user["username"], g.user["role"], "google_linked", "info", f"Connected Google account {info['email']}")
+        notifications.security_event(uid, "Google account connected", f"{info['email']} can now be used to sign in to ClearPay.")
+        flash(f"Connected. You can now sign in with {info['email']}.", "ok")
+    return redirect(url_for("account", tab="security"))
 
 
 @app.route("/logout", methods=["POST"])
@@ -1404,8 +1598,8 @@ def settings():
             if not u or problem:
                 flash(problem or "User not found.", "error")
             else:
-                db.execute("""UPDATE users SET password_hash=?, password_changed_at=?, failed_attempts=0, locked_until=NULL
-                              WHERE id=?""", (generate_password_hash(pw), db.now_iso(), uid))
+                db.execute("""UPDATE users SET password_hash=?, password_changed_at=?, failed_attempts=0, locked_until=NULL,
+                              has_password=1 WHERE id=?""", (generate_password_hash(pw), db.now_iso(), uid))
                 ended = security.end_other_sessions(uid, None, "password reset by admin")
                 db.log_audit(None, g.user["username"], "admin", "password_reset", "info",
                              f"Reset the password for {u['username']} (signed out {ended} session(s))")
@@ -1413,6 +1607,19 @@ def settings():
                                              f"{g.user['full_name']} reset your ClearPay password at {ist_now():%H:%M IST}. "
                                              "Sign in with the new password they give you.")
                 flash(f"Password reset for {u['username']}. Their open sessions were signed out.", "ok")
+        elif act == "reset_mfa" and (request.form.get("uid") or "").isdigit():
+            u = db.query("SELECT * FROM users WHERE id=?", (int(request.form["uid"]),), one=True)
+            if u and u["mfa_enabled"]:
+                db.execute("""UPDATE users SET mfa_enabled=0, mfa_secret=NULL, mfa_last_step=NULL, mfa_recovery=NULL,
+                              mfa_enabled_at=NULL WHERE id=?""", (u["id"],))
+                ended = security.end_other_sessions(u["id"], session.get("sid") if u["id"] == g.user["id"] else None,
+                                                    "two-factor reset by admin")
+                db.log_audit(None, u["username"], "admin", "mfa_reset", "info",
+                             f"{g.user['username']} reset two-factor authentication (signed out {ended} session(s))")
+                notifications.security_event(u["id"], "Two-factor authentication was reset",
+                                             f"{g.user['full_name']} reset your two-factor authentication at {ist_now():%H:%M IST}. "
+                                             "Set up your authenticator app again in Account → Security.")
+                flash(f"Two-factor authentication reset for {u['username']}. They can set it up again after signing in.", "ok")
         elif act in ("unlock", "toggle") and (request.form.get("uid") or "").isdigit():
             uid = int(request.form["uid"])
             if uid == g.user["id"] and act == "toggle":
@@ -1499,7 +1706,66 @@ def account():
             ended = security.end_other_sessions(me["id"], session.get("sid"), "signed out from another session")
             db.log_audit(None, me["username"], me["role"], "session_ended", "info", f"Signed out {ended} other session(s)")
             flash(f"Signed out of {ended} other session{'s' if ended != 1 else ''}.", "ok")
+        elif act == "mfa_start" and not me["mfa_enabled"]:
+            # the secret is stored now but only switched on once a code from the app proves it was scanned
+            db.execute("UPDATE users SET mfa_secret=?, mfa_last_step=NULL WHERE id=?", (mfa.seal(mfa.new_secret()), me["id"]))
+            return redirect(url_for("account", tab="security", setup=1))
+        elif act == "mfa_confirm" and not me["mfa_enabled"] and me["mfa_secret"]:
+            step = mfa.verify(mfa.unseal(me["mfa_secret"]), request.form.get("code", ""))
+            if step is None:
+                flash("That code didn't match. Check the time on your phone is set automatically, then use the newest code.", "error")
+                return redirect(url_for("account", tab="security", setup=1))
+            codes, stored = mfa.new_recovery_codes()
+            db.execute("""UPDATE users SET mfa_enabled=1, mfa_last_step=?, mfa_recovery=?, mfa_enabled_at=? WHERE id=?""",
+                       (step, stored, db.now_iso(), me["id"]))
+            ended = security.end_other_sessions(me["id"], session.get("sid"), "two-factor authentication turned on")
+            db.log_audit(None, me["username"], me["role"], "mfa_enabled", "info",
+                         f"Turned on two-factor authentication (signed out {ended} other session(s))")
+            notifications.security_event(me["id"], "Two-factor authentication turned on",
+                                         f"From now on, signing in needs a code from your authenticator app ({ist_now():%H:%M IST}).")
+            flash("Two-factor authentication is on. Save your recovery codes now.", "ok")
+            return account_page("security", recovery_codes=codes)
+        elif act in ("mfa_disable", "mfa_new_codes") and me["mfa_enabled"]:
+            if act == "mfa_disable" and mfa.required_for(me["role"]):
+                flash("Your role must use two-factor authentication, so it can't be turned off.", "error")
+            elif not check_second_factor(me, request.form.get("code", "")):
+                db.log_audit(None, me["username"], me["role"], "mfa_failed", "blocked", "Wrong code while changing two-factor settings")
+                flash("That code isn't right. Use the current code from your authenticator app or a recovery code.", "error")
+            elif act == "mfa_disable":
+                db.execute("""UPDATE users SET mfa_enabled=0, mfa_secret=NULL, mfa_last_step=NULL, mfa_recovery=NULL,
+                              mfa_enabled_at=NULL WHERE id=?""", (me["id"],))
+                db.log_audit(None, me["username"], me["role"], "mfa_disabled", "info", "Turned off two-factor authentication")
+                notifications.security_event(me["id"], "Two-factor authentication turned off",
+                                             f"Signing in no longer needs an authenticator code ({ist_now():%H:%M IST}). "
+                                             "If this wasn't you, change your password and tell your administrator.")
+                flash("Two-factor authentication is off.", "ok")
+            else:
+                codes, stored = mfa.new_recovery_codes()
+                db.execute("UPDATE users SET mfa_recovery=? WHERE id=?", (stored, me["id"]))
+                db.log_audit(None, me["username"], me["role"], "mfa_new_codes", "info", "Made new recovery codes (old ones stop working)")
+                flash("New recovery codes made. The old ones no longer work.", "ok")
+                return account_page("security", recovery_codes=codes)
+        elif act == "google_unlink" and me["google_sub"]:
+            if not me["has_password"]:
+                flash("You sign in only with Google, so it can't be disconnected. Ask an admin to set a password first.", "error")
+            else:
+                db.execute("UPDATE users SET google_sub=NULL, google_email=NULL WHERE id=?", (me["id"],))
+                db.log_audit(None, me["username"], me["role"], "google_unlinked", "info", f"Disconnected Google account {me['google_email']}")
+                notifications.security_event(me["id"], "Google account disconnected",
+                                             f"{me['google_email']} can no longer be used to sign in to ClearPay.")
+                flash("Google account disconnected.", "ok")
         return redirect(url_for("account", tab=tab))
+    return account_page(tab)
+
+
+def account_page(tab, recovery_codes=None):
+    me = db.query("SELECT * FROM users WHERE id=?", (g.user["id"],), one=True)
+    setup = None
+    if tab == "security" and request.args.get("setup") and not me["mfa_enabled"] and me["mfa_secret"]:
+        secret = mfa.unseal(me["mfa_secret"])
+        qr = mfa.qr_svg(mfa.provisioning_uri(secret, me["email"] or me["username"]))
+        setup = {"qr": Markup(qr),  # nosec B704 - SVG made by the qrcode library from our own secret, no user input
+                 "key": mfa.pretty(secret)}
 
     sessions = [dict(r) for r in db.query("SELECT * FROM user_sessions WHERE user_id=? ORDER BY created_at DESC LIMIT 50",
                                           (me["id"],))]
@@ -1513,17 +1779,23 @@ def account():
         if r["ended_at"]:
             activity.append({"ts": r["ended_at"], "event": "Signed out" if r["end_reason"] == "signed out" else
                              "Session ended", "detail": r["end_reason"], "ip": "", "ok": True})
-    for r in db.query("""SELECT * FROM audit_log WHERE actor = ? AND step IN
-                         ('login_failed','account_locked','password_changed','password_reset') ORDER BY id DESC LIMIT 50""",
-                      (me["username"],)):
-        label = {"login_failed": "Failed sign-in", "account_locked": "Account locked",
-                 "password_changed": "Password changed", "password_reset": "Password reset by admin"}[r["step"]]
-        activity.append({"ts": r["ts"], "event": label, "detail": r["reason"], "ip": "",
-                         "ok": r["step"] in ("password_changed", "password_reset")})
+    labels = {"login_failed": "Failed sign-in", "account_locked": "Account locked", "password_changed": "Password changed",
+              "password_reset": "Password reset by admin", "mfa_failed": "Wrong authenticator code",
+              "mfa_enabled": "Two-factor turned on", "mfa_disabled": "Two-factor turned off",
+              "mfa_reset": "Two-factor reset by admin", "mfa_new_codes": "New recovery codes",
+              "recovery_code_used": "Recovery code used", "google_linked": "Google connected",
+              "google_unlinked": "Google disconnected"}
+    marks = ",".join("?" * len(labels))
+    for r in db.query(f"SELECT * FROM audit_log WHERE actor = ? AND step IN ({marks}) ORDER BY id DESC LIMIT 50",  # nosec B608 - placeholders only
+                      (me["username"], *labels)):
+        activity.append({"ts": r["ts"], "event": labels[r["step"]], "detail": r["reason"], "ip": "",
+                         "ok": r["step"] not in ("login_failed", "account_locked", "mfa_failed")})
     activity.sort(key=lambda a: a["ts"] or "", reverse=True)
     alerts = [n for n in notifications.latest(me["id"], 50) if n["kind"] == "security"][:8]
     return render_template("account.html", tab=tab, me=me, sessions=sessions, previous=previous,
-                           activity=activity[:60], alerts=alerts, current_sid=session.get("sid"))
+                           activity=activity[:60], alerts=alerts, current_sid=session.get("sid"), setup=setup,
+                           recovery_codes=recovery_codes, codes_left=mfa.recovery_left(me["mfa_recovery"]),
+                           mfa_required=mfa.required_for(me["role"]))
 
 
 # ==========================================================================

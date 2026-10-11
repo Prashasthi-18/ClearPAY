@@ -62,11 +62,35 @@
     <div class="login-tilt" id="login-tilt">
     <div class="panel login-card enter-card {{ 'has-error' if error }}">
       <div class="login-progress"></div>
+      {% if step == 'mfa' %}
+      <div class="mb-3">
+        <span class="mfa-badge">{{ icon('shield-check') }}</span>
+        <h1>Two-step verification</h1>
+        <p class="muted mb-0" style="font-size: 14px">{{ mfa_name }}, enter the 6-digit code from your authenticator app.</p>
+      </div>
+      {% if error %}<div class="flash error mb-3" role="alert">{{ icon('circle-alert') }}<span>{{ error }}</span></div>{% endif %}
+      <form method="post" action="{{ url_for('login_mfa') }}" id="mfa-form" class="stagger d-flex flex-column gap-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><label class="form-label" for="code">Authentication code</label>
+          <input class="form-control mfa-input" id="code" name="code" required autofocus autocomplete="one-time-code" inputmode="numeric"
+                 maxlength="11" placeholder="123 456" aria-describedby="code-hint">
+          <span class="form-hint d-block" id="code-hint">No phone? Type one of your recovery codes instead (like <span class="mono">abcde-fghjk</span>).</span></div>
+        <button class="btn btn-primary w-100" type="submit" id="signin-btn" data-busy-text="Checking…">{{ icon('shield-check', 'ic-sm') }}<span>Verify and sign in</span></button>
+        <a class="link-btn text-center" href="{{ url_for('login') }}">Cancel and start again</a>
+      </form>
+      {% else %}
       <div class="mb-3">
         <h1>Sign in</h1>
         <p class="muted mb-0" style="font-size: 14px">Accounts payable workspace for the AP team, managers and admins.</p>
       </div>
       {% if error %}<div class="flash error mb-3" role="alert">{{ icon('circle-alert') }}<span>{{ error }}</span></div>{% endif %}
+      {% if notice %}<div class="flash ok mb-3" role="status">{{ icon('circle-check') }}<span>{{ notice }}</span></div>{% endif %}
+      {% if google_on %}
+      <div class="stagger d-flex flex-column gap-3 mb-3">
+        <a class="btn btn-google w-100" href="{{ url_for('google_start', next=request.args.get('next')) }}" id="google-btn">{% include "_google_g.html" %}<span>Continue with Google</span></a>
+        <div class="login-or"><span>or sign in with your username</span></div>
+      </div>
+      {% endif %}
       <form method="post" autocomplete="on" id="login-form" class="stagger d-flex flex-column gap-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div><label class="form-label" for="u">Username</label>
@@ -84,6 +108,8 @@
           ClearPay doesn't send reset links by email yet.
         </div>
       </form>
+      {% if google_on and google_signup %}<p class="login-signup">New to ClearPay? <a href="{{ url_for('google_start') }}">Request access with Google</a></p>{% endif %}
+      {% endif %}
     </div>
     </div>
     {% if show_demo_hint %}<p class="login-foot enter-logo">Demo users: <b>ap_user</b>, <b>ap_user2</b> (AP team), <b>manager</b>, <b>admin</b>. The password is <code>DEMO_PASSWORD</code> from <code>.env</code>.</p>{% else %}<p class="login-foot enter-logo">Five wrong passwords lock an account for 15 minutes.</p>{% endif %}

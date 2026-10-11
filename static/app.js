@@ -359,6 +359,14 @@
 
   // ---------- print / save as PDF ----------
   document.querySelectorAll("[data-print]").forEach(function (b) { b.addEventListener("click", function () { window.print(); }); });
+  document.querySelectorAll("[data-copy]").forEach(function (b) {     // copy the text of another element (recovery codes)
+    b.addEventListener("click", function () {
+      var src = document.getElementById(b.dataset.copy);
+      var text = Array.prototype.map.call(src.querySelectorAll("li"), function (li) { return li.textContent; }).join("\n") || src.textContent;
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(function () { b.lastChild.textContent = "Copied"; });
+    });
+  });
 
 
   // ---------- chat helpers (Ask ClearPay + Help). Server text is only ever set with textContent. ----------

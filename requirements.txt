@@ -7,3 +7,6 @@ pytesseract==0.3.13
 Pillow==12.3.0
 gunicorn==23.0.0; sys_platform != "win32"
 psycopg[binary]==3.3.6
+httpx==0.28.1
+qrcode==8.2
+cryptography==50.0.2

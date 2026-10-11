@@ -47,14 +47,27 @@ def authenticate(username, password):
     if not user:
         check_password_hash(_DUMMY_HASH, password or "")  # equalise timing
         return None, generic
+    locked = locked_message(user)
+    if locked:
+        return None, locked
+    if check_password_hash(user["password_hash"], password or ""):
+        db.execute("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?", (user["id"],))
+        return user, None
+    return None, record_failure(user, "wrong passwords") or generic
+
+
+def locked_message(user):
+    """The lockout message if the account is locked right now, else None."""
     if user["locked_until"]:
         until = datetime.fromisoformat(user["locked_until"])
         if until > datetime.now(timezone.utc):
             mins = int((until - datetime.now(timezone.utc)).total_seconds() // 60) + 1
-            return None, f"Account locked after too many attempts. Try again in {mins} min."
-    if check_password_hash(user["password_hash"], password or ""):
-        db.execute("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?", (user["id"],))
-        return user, None
+            return f"Account locked after too many attempts. Try again in {mins} min."
+    return None
+
+
+def record_failure(user, what):
+    """Count a failed sign-in step (password or authenticator code). Returns the lockout message once it locks."""
     attempts = user["failed_attempts"] + 1
     locked = None
     if attempts >= MAX_FAILED_LOGINS:
@@ -69,11 +82,11 @@ def authenticate(username, password):
             import notifications
             notifications.security_event(user["id"], "Account locked after failed sign-ins",
                                          f"{user['full_name']}'s account was locked for {LOCKOUT_MINUTES} minutes after "
-                                         f"{MAX_FAILED_LOGINS} wrong passwords from {request.remote_addr}.", also_admins=True)
+                                         f"{MAX_FAILED_LOGINS} {what} from {request.remote_addr}.", also_admins=True)
         except Exception:  # a notification must never block the lockout itself
             pass
-        return None, f"Account locked after too many attempts. Try again in {LOCKOUT_MINUTES} min."
-    return None, generic
+        return f"Account locked after too many attempts. Try again in {LOCKOUT_MINUTES} min."
+    return None
 
 
 SESSION_IDLE_MINUTES = 30

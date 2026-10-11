@@ -56,6 +56,75 @@
 
 {% elif tab == 'security' %}
 <section class="panel">
+  {% if recovery_codes %}
+  <div class="set-row mfa-codes-row"><div><h3>Your recovery codes</h3><p>Each code signs you in once if you don't have your phone. They are shown only now: save them somewhere safe (a password manager, or print them).</p></div>
+    <div>
+      <ol class="mfa-codes mono" id="mfa-codes">{% for c in recovery_codes %}<li>{{ c }}</li>{% endfor %}</ol>
+      <div class="d-flex gap-2 flex-wrap mt-3">
+        <button class="btn btn-outline btn-sm" type="button" data-copy="mfa-codes">{{ icon('check', 'ic-sm') }}Copy codes</button>
+        <button class="btn btn-outline btn-sm" type="button" data-print>{{ icon('printer', 'ic-sm') }}Print</button>
+      </div>
+    </div></div>
+  {% endif %}
+  <div class="set-row"><div><h3>Two-factor authentication</h3><p>A 6-digit code from an authenticator app (Google Authenticator, Microsoft Authenticator, Authy, 1Password) after your password or Google sign-in.</p></div>
+    <div style="max-width: 520px">
+    {% if me.mfa_enabled %}
+      <div class="d-flex align-items-center gap-2 mb-2"><span class="badge-s b-ok">{{ icon('shield-check', 'ic-sm') }}On</span>
+        <span class="muted" style="font-size: 13.5px">since {{ me.mfa_enabled_at|dt }} · {{ codes_left }} recovery code{{ 's' if codes_left != 1 }} left</span></div>
+      {% if codes_left <= 3 %}<div class="flash error mb-3">{{ icon('triangle-alert') }}<span>Only {{ codes_left }} recovery code{{ 's' if codes_left != 1 }} left. Make new ones below.</span></div>{% endif %}
+      <form method="post" action="{{ url_for('account', tab='security') }}" class="d-flex flex-column gap-2">
+        {{ csrf() }}
+        <label class="form-label m-0" for="mfa-code-x">Current code from your app (or a recovery code)</label>
+        <input class="form-control mono" id="mfa-code-x" name="code" inputmode="numeric" autocomplete="one-time-code" required maxlength="11" style="max-width: 220px">
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline btn-sm" type="submit" name="action" value="mfa_new_codes">{{ icon('refresh-cw', 'ic-sm') }}Make new recovery codes</button>
+          {% if not mfa_required %}<button class="btn btn-reject btn-sm" type="submit" name="action" value="mfa_disable" data-confirm="Turn off two-factor authentication?" data-confirm-text="Signing in will only need your password or Google account." data-confirm-ok="Turn off">Turn off</button>{% endif %}
+        </div>
+        {% if mfa_required %}<span class="form-hint">Required for your role, so it can't be turned off.</span>{% endif %}
+      </form>
+    {% elif setup %}
+      <ol class="mfa-steps">
+        <li>Open your authenticator app and add an account (usually the <b>+</b> button).</li>
+        <li>Scan this QR code. Can't scan? Choose "Enter a setup key" and type the key below.</li>
+        <li>Type the 6-digit code the app shows.</li>
+      </ol>
+      <div class="mfa-setup">
+        <div class="mfa-qr" role="img" aria-label="QR code for your authenticator app">{{ setup.qr }}</div>
+        <div class="d-flex flex-column gap-2">
+          <span class="form-label m-0">Setup key</span>
+          <code class="mfa-key" id="mfa-key">{{ setup.key }}</code>
+          <span class="form-hint m-0">Account: {{ me.email or me.username }} · Time-based · 6 digits</span>
+          <form method="post" action="{{ url_for('account', tab='security') }}" class="d-flex flex-column gap-2 mt-2">
+            {{ csrf() }}<input type="hidden" name="action" value="mfa_confirm">
+            <label class="form-label m-0" for="mfa-code">Code from the app</label>
+            <div class="d-flex gap-2"><input class="form-control mono" id="mfa-code" name="code" inputmode="numeric" pattern="[0-9 ]{6,7}" autocomplete="one-time-code" required maxlength="7" style="max-width: 150px" autofocus>
+              <button class="btn btn-primary" type="submit">{{ icon('shield-check', 'ic-sm') }}Turn on</button></div>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      {% if mfa_required %}<div class="flash error mb-3">{{ icon('triangle-alert') }}<span>Your role must use two-factor authentication. Set it up to continue using ClearPay.</span></div>{% endif %}
+      <form method="post" action="{{ url_for('account', tab='security') }}">{{ csrf() }}<input type="hidden" name="action" value="mfa_start">
+        <button class="btn btn-primary" type="submit">{{ icon('smartphone', 'ic-sm') }}Set up authenticator app</button></form>
+      <span class="form-hint d-block mt-2">Takes about a minute. You'll also get 10 recovery codes for when you don't have your phone.</span>
+    {% endif %}
+    </div></div>
+  {% if google_on or me.google_sub %}
+  <div class="set-row"><div><h3>Google sign-in</h3><p>Sign in with your Google account instead of typing a password.</p></div>
+    <div>
+    {% if me.google_sub %}
+      <div class="sess" style="border-top: 0; padding-top: 0"><span class="s-ic">{% include "_google_g.html" %}</span>
+        <div class="s-body">Connected<small>{{ me.google_email }}</small></div>
+        {% if me.has_password %}<form method="post" action="{{ url_for('account', tab='security') }}">{{ csrf() }}<input type="hidden" name="action" value="google_unlink">
+          <button class="btn btn-outline btn-sm" type="submit" data-confirm="Disconnect Google?" data-confirm-text="You'll sign in with your username and password only." data-confirm-ok="Disconnect">Disconnect</button></form>{% endif %}
+      </div>
+    {% else %}
+      <form method="post" action="{{ url_for('google_start') }}">{{ csrf() }}
+        <button class="btn btn-google" type="submit">{% include "_google_g.html" %}<span>Connect Google account</span></button></form>
+    {% endif %}
+    </div></div>
+  {% endif %}
+  {% if me.has_password %}
   <form class="set-row" method="post" action="{{ url_for('account', tab='security') }}">
     {{ csrf() }}<input type="hidden" name="action" value="password">
     <div><h3>Password</h3><p>Last changed: {{ me.password_changed_at|dt if me.password_changed_at else 'never (still the starting password)' }}.</p>
@@ -67,8 +136,10 @@
       <div><button class="btn btn-primary" type="submit">{{ icon('key-round', 'ic-sm') }}Change password</button></div>
     </div>
   </form>
-  <div class="set-row"><div><h3>Two-factor authentication</h3><p>An authenticator-app code at sign-in.</p></div>
-    <div><span class="unavailable">Not available in this version of ClearPay. Sign-in uses a password with lockout after 5 failed attempts.</span></div></div>
+  {% else %}
+  <div class="set-row"><div><h3>Password</h3><p>Your account was created with Google sign-in.</p></div>
+    <div><span class="unavailable">You sign in with Google, so there's no ClearPay password. An administrator can set one in Settings &amp; users if you need it.</span></div></div>
+  {% endif %}
   <div class="set-row"><div><h3>Active sessions</h3><p>Every place you're signed in. Sessions end after 30 minutes without activity.</p></div>
     <div>
       {% set live = sessions|selectattr('live')|list %}

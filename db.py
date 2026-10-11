@@ -295,7 +295,15 @@ CREATE TABLE IF NOT EXISTS users (
     department TEXT,
     theme TEXT NOT NULL DEFAULT 'system',      -- light | dark | system
     last_login_at TEXT,
-    password_changed_at TEXT
+    password_changed_at TEXT,
+    has_password INTEGER NOT NULL DEFAULT 1,   -- 0 for accounts created by Google sign-up
+    google_sub TEXT,                           -- Google's stable account id, once linked
+    google_email TEXT,
+    mfa_enabled INTEGER NOT NULL DEFAULT 0,
+    mfa_secret TEXT,                           -- authenticator secret (encrypted when MFA_ENCRYPTION_KEY is set)
+    mfa_last_step INTEGER,                     -- last accepted 30-second step, so a code can't be used twice
+    mfa_recovery TEXT,                         -- JSON list of hashed one-time recovery codes
+    mfa_enabled_at TEXT
 );
 CREATE TABLE IF NOT EXISTS user_sessions (     -- one row per sign-in; lets people see and end their sessions
     id TEXT PRIMARY KEY,
@@ -495,9 +503,13 @@ def init_db():
         conn().execute("ALTER TABLE emails ADD COLUMN last_error TEXT")
     ucols = table_columns("users")
     for col, ddl in (("department", "TEXT"), ("theme", "TEXT NOT NULL DEFAULT 'system'"),
-                     ("last_login_at", "TEXT"), ("password_changed_at", "TEXT")):
+                     ("last_login_at", "TEXT"), ("password_changed_at", "TEXT"),
+                     ("has_password", "INTEGER NOT NULL DEFAULT 1"), ("google_sub", "TEXT"), ("google_email", "TEXT"),
+                     ("mfa_enabled", "INTEGER NOT NULL DEFAULT 0"), ("mfa_secret", "TEXT"), ("mfa_last_step", "INTEGER"),
+                     ("mfa_recovery", "TEXT"), ("mfa_enabled_at", "TEXT")):
         if col not in ucols:
             conn().execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")  # nosec B608 - fixed column names
+    conn().execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_google_sub ON users(google_sub)")
     for table, columns in (("vendors", (("msme", "INTEGER NOT NULL DEFAULT 0"),)),
                            ("invoices", (("payment_terms_days", "INTEGER"), ("due_date", "TEXT"),
                                          ("email_from", "TEXT"), ("email_subject", "TEXT"))),

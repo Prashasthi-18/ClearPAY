@@ -77,7 +77,8 @@ Evaluation runs skip the Investigator, and investigations run in their own queue
 - **Real sessions:** each sign-in is recorded on the server; signing out, ending a session elsewhere, a password change or deactivation takes effect immediately, and the 30-minute idle timeout is enforced on the server too.
 - **Admin password reset** (Settings & users) backs the "Forgot password?" link on the sign-in page. Reset-by-email isn't built, and the page says so.
 - **Payment file export.** *Payment deadlines → Payment file (CSV)* (AP team and admin) lists every invoice that is ready for payment, with the vendor's GSTIN, bank account, IFSC, MSME flag and due date, ready to upload to the bank. The export is written to the audit log. ClearPay still never pays: a person uploads the file and then records each payment.
-- **Not built, and shown as such:** two-factor authentication, profile photos (initials are used), payments (ClearPay never pays; "Ready for payment" is the last state).
+- **Continue with Google** (sign-in, account linking and access requests that an admin approves) and **two-factor authentication** with an authenticator app plus one-time recovery codes. It can be made compulsory per role with `MFA_REQUIRED_ROLES`. Setup steps: [deploy/AUTH_SETUP.md](deploy/AUTH_SETUP.md).
+- **Not built, and shown as such:** profile photos (initials are used), payments (ClearPay never pays; "Ready for payment" is the last state).
 - Branding: original ClearPay logo in `static/brand/` (full logo for light and dark, mark, favicon SVG/PNG, 180 px app icon). Icons: [Lucide](https://lucide.dev) (ISC licence), bundled as `static/icons.svg`. Motion respects `prefers-reduced-motion`.
 
 ## Quick start
