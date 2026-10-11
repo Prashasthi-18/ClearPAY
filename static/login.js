@@ -52,6 +52,27 @@
     }
   }
 
+  // ---------- fit to the screen: on a short window, scale down instead of cutting anything off ----------
+  var wrap = document.querySelector(".login-wrap"), col = document.getElementById("login-col"),
+      stage = document.querySelector(".login-stage"), inner = document.getElementById("ls-inner");
+  var fitOne = function (el, avail) {
+    el.style.scale = "";
+    var need = el.offsetHeight;                      // layout height; `scale` doesn't change it
+    var s = need > avail && avail > 0 ? Math.max(0.6, avail / need) : 1;
+    el.style.scale = s < 1 ? s.toFixed(3) : "";
+  };
+  var padY = function (el) { var cs = getComputedStyle(el); return parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom); };
+  var fit = function () {
+    if (wrap && col) fitOne(col, wrap.clientHeight - padY(wrap));
+    if (stage && inner && getComputedStyle(stage).display !== "none") fitOne(inner, stage.clientHeight - padY(stage));
+  };
+  var queued = 0;
+  var refit = function () { if (!queued) queued = requestAnimationFrame(function () { queued = 0; fit(); }); };
+  fit();
+  window.addEventListener("resize", refit);
+  window.addEventListener("load", refit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+
   // ---------- sign-in card: gentle tilt and a spotlight that follows the pointer ----------
   var tilt = document.getElementById("login-tilt");
   if (tilt && !reduce && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {

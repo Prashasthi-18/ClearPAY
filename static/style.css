@@ -455,8 +455,18 @@ pre.code { margin: 0; background: #0B1322; color: #E6ECF5; border: 1px solid var
 /* ---------- login ---------- */
 /* the sign-in page is one full screen: no scrolling, the animated background covers everything */
 html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; background: #0A1424; }
-.login-wrap { position: relative; height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 24px;
-  overflow: hidden; isolation: isolate; background: #0A1424; }
+.login-wrap { position: relative; height: 100vh; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr); place-items: center; padding: 24px; overflow: hidden; isolation: isolate; background: #0A1424; }
+/* card header: the subtitle and any message share one fixed-height slot, so errors never resize the card */
+.login-head { margin-bottom: 18px; }
+.login-head h1 { font-size: 21px; font-weight: 700; margin: 0 0 6px; }
+.login-msg { min-height: 50px; display: flex; align-items: flex-start; }
+.login-msg p { margin: 0; color: var(--muted); font-size: 14px; }
+.login-alert { display: flex; gap: 8px; align-items: flex-start; width: 100%; padding: 7px 11px; border-radius: 9px; font-size: 13px; line-height: 1.4;
+  animation: fade-up 260ms var(--ease) both; }
+.login-alert .ic { flex: none; margin-top: 1px; }
+.login-alert.bad { background: var(--bad-bg); color: var(--bad-ink); }
+.login-alert.ok { background: var(--ok-bg); color: var(--ok-ink); }
 .ls-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
 .login-page .login-logo { color: #F3F6FB; }
 .login-page .login-foot { color: #9FB0C8; }
@@ -530,9 +540,9 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 .login-or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12.5px; }
 .login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .login-signup { margin: 18px 0 0; text-align: center; font-size: 13.5px; color: var(--muted); }
-.mfa-badge { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; margin-bottom: 14px;
-  background: var(--accent-soft); color: var(--accent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 7%, transparent); }
-.mfa-badge .ic { width: 22px; height: 22px; }
+.mfa-badge { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; flex: none;
+  background: var(--accent-soft); color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 7%, transparent); }
+.mfa-badge .ic { width: 18px; height: 18px; }
 .mfa-input { font-size: 22px; letter-spacing: .3em; text-align: center; font-variant-numeric: tabular-nums; height: 52px; }
 .mfa-input::placeholder { letter-spacing: .3em; }
 .mfa-steps { margin: 0 0 16px; padding-left: 20px; font-size: 14px; color: var(--ink-2); display: flex; flex-direction: column; gap: 4px; }
@@ -547,22 +557,33 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 @media print { .mfa-codes-row { display: grid !important; } }
 
 /* showcase panel: shown on wide screens, always dark */
-.login-stage { display: none; position: relative; padding: clamp(24px, 4.5vh, 44px) 24px clamp(20px, 4vh, 36px) clamp(32px, 4vw, 64px);
-  color: #E8EDF6; flex-direction: column; justify-content: space-between; gap: clamp(14px, 3vh, 28px); min-height: 0; }
+/* The two halves are independent: each is exactly one screen tall and never pushes the other. If a screen is too
+   short, login.js scales the showcase and the card down to fit instead of letting anything be cut off. */
+.login-stage { display: none; position: relative; height: 100%; min-height: 0; overflow: hidden; color: #E8EDF6;
+  padding: clamp(20px, 4vh, 40px) 24px clamp(20px, 4vh, 40px) clamp(32px, 4vw, 64px); flex-direction: column; justify-content: center; }
+.ls-inner { display: flex; flex-direction: column; gap: clamp(18px, 4vh, 40px); transform-origin: left center; }
+.login-col { transform-origin: center center; }
 @media (min-width: 1000px) {
   .login-wrap { grid-template-columns: minmax(0, 1.15fr) minmax(440px, 1fr); place-items: stretch; padding: 0; }
   .login-stage { display: flex; }
   .login-col { align-self: center; justify-self: center; padding: 24px; max-width: 458px; }
   .login-col > .login-logo { display: none; }
 }
-/* shorter screens: tighten the showcase so everything still fits without scrolling */
 @media (min-width: 1000px) and (max-height: 820px) {
   .ls-copy h2 { font-size: clamp(24px, 2.2vw, 32px); margin: 12px 0 8px; }
-  .ls-scene { scale: .9; transform-origin: left top; margin-bottom: -33px; }   /* `scale`, so it doesn't fight the fade-up transform */
 }
 @media (min-width: 1000px) and (max-height: 700px) {
-  .ls-sub, .ls-trust { display: none; }
-  .ls-scene { scale: .8; margin-bottom: -66px; }
+  .ls-sub { display: none; }
+}
+/* short screens: a tighter card (login.js still scales it if needed) */
+@media (max-height: 760px) {
+  .login-card { padding: 22px 24px; }
+  .login-head { margin-bottom: 12px; }
+  .login-card .stagger.gap-3 { gap: 12px !important; }
+  .login-card .form-control { height: 40px; }
+  .login-card .btn-primary, .btn-google { height: 42px; }
+  .login-signup { margin-top: 12px; }
+  .login-col { gap: 14px; }
 }
 .ls-aurora { position: absolute; inset: 0; }
 .ls-aurora i { position: absolute; width: 560px; height: 560px; border-radius: 50%; filter: blur(90px); opacity: .5; animation: ls-drift 24s ease-in-out infinite alternate; }
@@ -590,7 +611,7 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 @keyframes ls-text { to { background-position: -220% 0; } }
 .ls-sub { margin: 0; color: #9FB0C8; font-size: 15px; max-width: 48ch; }
 
-.ls-scene { position: relative; height: 330px; perspective: 1400px; animation: fade-up 800ms var(--ease) 260ms both; }
+.ls-scene { position: relative; height: 330px; width: 100%; max-width: 680px; perspective: 1400px; animation: fade-up 800ms var(--ease) 260ms both; }
 .ls-doc { position: absolute; left: 0; top: 10px; width: min(390px, 56%); height: 300px; border-radius: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, .095), rgba(255, 255, 255, .035)); border: 1px solid rgba(255, 255, 255, .12);
   box-shadow: 0 30px 60px -12px rgba(0, 0, 0, .5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
@@ -658,9 +679,6 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 @keyframes ls-line { from { opacity: 0; transform: translateX(-8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
 .ls-scene .ls-content, .ls-scene .ls-log ol { transition: opacity 420ms var(--ease), filter 420ms var(--ease); }
 .ls-scene.out .ls-content, .ls-scene.out .ls-log ol { opacity: 0; filter: blur(4px); }
-.ls-trust { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13px; color: #9FB0C8; animation: fade-up 700ms var(--ease) 420ms both; }
-.ls-trust li { display: inline-flex; align-items: center; gap: 7px; }
-.ls-trust .ic { color: #7AA2FF; }
 
 /* dashboard entrance, once after sign-in */
 body.enter .side { animation: fade-in 320ms var(--ease) both; }

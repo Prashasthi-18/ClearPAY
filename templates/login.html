@@ -18,6 +18,7 @@
   <div class="ls-bg" aria-hidden="true"><div class="ls-aurora"><i></i><i></i><i></i></div><div class="ls-grid"></div></div>
   {# Showcase: an invoice being checked, on a loop. Decorative only, hidden from screen readers. #}
   <aside class="login-stage" aria-hidden="true">
+    <div class="ls-inner" id="ls-inner">
     <div class="ls-brand"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
     <div class="ls-copy">
       <p class="ls-eyebrow"><span class="ls-pulse"></span>AP agent · live check</p>
@@ -50,25 +51,23 @@
         <ol id="ls-log"></ol>
       </div>
     </div>
-    <ul class="ls-trust">
-      <li>{{ icon('shield-check', 'ic-sm') }}AI recommends, people decide</li>
-      <li>{{ icon('scroll-text', 'ic-sm') }}Every step audited</li>
-      <li>{{ icon('wallet', 'ic-sm') }}Never moves money</li>
-    </ul>
+    </div>
   </aside>
 
-  <div class="login-col">
+  <div class="login-col" id="login-col">
     <div class="login-logo enter-logo"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
     <div class="login-tilt" id="login-tilt">
     <div class="panel login-card enter-card {{ 'has-error' if error }}">
       <div class="login-progress"></div>
       {% if step == 'mfa' %}
-      <div class="mb-3">
-        <span class="mfa-badge">{{ icon('shield-check') }}</span>
-        <h1>Two-step verification</h1>
-        <p class="muted mb-0" style="font-size: 14px">{{ mfa_name }}, enter the 6-digit code from your authenticator app.</p>
+      {# Messages replace the subtitle in a fixed-height slot, so the card never changes size. #}
+      <div class="login-head">
+        <h1 class="d-flex align-items-center gap-2"><span class="mfa-badge">{{ icon('shield-check') }}</span>Two-step verification</h1>
+        <div class="login-msg">
+          {% if error %}<div class="login-alert bad" role="alert">{{ icon('circle-alert', 'ic-sm') }}<span>{{ error }}</span></div>
+          {% else %}<p>{{ mfa_name }}, enter the 6-digit code from your authenticator app.</p>{% endif %}
+        </div>
       </div>
-      {% if error %}<div class="flash error mb-3" role="alert">{{ icon('circle-alert') }}<span>{{ error }}</span></div>{% endif %}
       <form method="post" action="{{ url_for('login_mfa') }}" id="mfa-form" class="stagger d-flex flex-column gap-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div><label class="form-label" for="code">Authentication code</label>
@@ -79,12 +78,14 @@
         <a class="link-btn text-center" href="{{ url_for('login') }}">Cancel and start again</a>
       </form>
       {% else %}
-      <div class="mb-3">
+      <div class="login-head">
         <h1>Sign in</h1>
-        <p class="muted mb-0" style="font-size: 14px">Accounts payable workspace for the AP team, managers and admins.</p>
+        <div class="login-msg">
+          {% if error %}<div class="login-alert bad" role="alert">{{ icon('circle-alert', 'ic-sm') }}<span>{{ error }}</span></div>
+          {% elif notice %}<div class="login-alert ok" role="status">{{ icon('circle-check', 'ic-sm') }}<span>{{ notice }}</span></div>
+          {% else %}<p>Accounts payable workspace for the AP team, managers and admins.</p>{% endif %}
+        </div>
       </div>
-      {% if error %}<div class="flash error mb-3" role="alert">{{ icon('circle-alert') }}<span>{{ error }}</span></div>{% endif %}
-      {% if notice %}<div class="flash ok mb-3" role="status">{{ icon('circle-check') }}<span>{{ notice }}</span></div>{% endif %}
       {% if google_on %}
       <div class="stagger d-flex flex-column gap-3 mb-3">
         <a class="btn btn-google w-100" href="{{ url_for('google_start', next=request.args.get('next')) }}" id="google-btn">{% include "_google_g.html" %}<span>Continue with Google</span></a>
