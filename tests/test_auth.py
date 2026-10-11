@@ -307,3 +307,14 @@ def test_admin_can_approve_or_reject_in_settings_too(app, monkeypatch, mails):
     password_login(c, "admin")
     c.post("/settings", data={"action": "reject_request", "uid": user("newperson")["id"], "csrf_token": token(c.get("/settings").text)})
     assert "Declined" in c.get("/settings").text and user("newperson")["active"] == 0
+
+
+def test_waiting_person_trying_again_resends_only_when_no_live_request(app, monkeypatch, mails):
+    google_round_trip(app.test_client(), monkeypatch)
+    count = lambda: sum(1 for m in mails if m[1].startswith("ClearPay access request"))
+    assert count() == 1
+    google_round_trip(app.test_client(), monkeypatch)                   # request still open: no second email
+    assert count() == 1
+    db.execute("DELETE FROM access_requests")                            # like a request made before emails existed
+    google_round_trip(app.test_client(), monkeypatch)
+    assert count() == 2

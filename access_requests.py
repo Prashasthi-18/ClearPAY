@@ -55,6 +55,13 @@ def find(token):
     return None
 
 
+def has_open(user_id):
+    """True if an undecided request that hasn't expired exists (so we don't email the admins again)."""
+    now = datetime.now(timezone.utc)
+    return any(datetime.fromisoformat(r["expires_at"]) > now for r in
+               db.query("SELECT expires_at FROM access_requests WHERE user_id = ? AND decision IS NULL", (user_id,)))
+
+
 def latest_decision(user_id):
     r = db.query("SELECT decision FROM access_requests WHERE user_id = ? ORDER BY id DESC", (user_id,), one=True)
     return r["decision"] if r else None

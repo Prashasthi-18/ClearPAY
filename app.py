@@ -432,6 +432,8 @@ def google_callback():
     if not user["active"]:
         waiting = not user["has_password"] and not user["last_login_at"]
         declined = waiting and access_requests.latest_decision(user["id"]) == "rejected"
+        if waiting and not declined and not access_requests.has_open(user["id"]):
+            access_requests.notify_admins(user, access_requests.create(user["id"]))     # no live request: (re)send the email
         session["login_error"] = ("Your access request was declined. Contact your administrator." if declined else
                                   "Your account request is waiting for an administrator to approve it." if waiting
                                   else "This account is deactivated. Contact your administrator.")
