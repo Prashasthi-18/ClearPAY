@@ -453,8 +453,11 @@ pre.code { margin: 0; background: #0B1322; color: #E6ECF5; border: 1px solid var
 @keyframes skel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 
 /* ---------- login ---------- */
-.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px; background:
+.login-wrap { position: relative; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 24px; overflow: hidden; isolation: isolate; background:
   radial-gradient(60% 50% at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%), var(--bg); }
+.login-wrap::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 9%, transparent) 1px, transparent 1px); background-size: 22px 22px;
+  mask-image: radial-gradient(55% 55% at 50% 45%, #000, transparent 75%); -webkit-mask-image: radial-gradient(55% 55% at 50% 45%, #000, transparent 75%); }
 .login-col { width: 100%; max-width: 410px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
 .login-logo { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
 .login-logo img { width: 44px; height: 44px; }
@@ -476,6 +479,148 @@ pre.code { margin: 0; background: #0B1322; color: #E6ECF5; border: 1px solid var
 @keyframes logo-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 @keyframes card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* sign-in card: tilt + cursor spotlight (login.js sets --rx/--ry/--mx/--my), glowing border, button sheen, busy bar, error shake */
+@property --ls-ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.login-col { position: relative; z-index: 1; }
+.login-tilt { width: 100%; transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 500ms var(--ease); will-change: transform; }
+.login-tilt.is-tracking { transition: transform 120ms linear; }
+.login-card { position: relative; overflow: hidden; }
+.login-card::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 300ms var(--ease);
+  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--accent) 9%, transparent), transparent 65%); }
+.login-tilt.is-tracking .login-card::before { opacity: 1; }
+.login-card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; opacity: .75;
+  background: conic-gradient(from var(--ls-ang), transparent 0 62%, color-mix(in srgb, var(--accent) 70%, transparent) 76%, #5EE0C8 82%, transparent 92%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+  animation: ls-spin 7s linear infinite; }
+@keyframes ls-spin { to { --ls-ang: 360deg; } }
+.login-card > *:not(.login-progress) { position: relative; }
+.login-card .form-label { transition: color var(--t-micro); }
+.login-card div:focus-within > .form-label { color: var(--accent); }
+.login-card .btn-primary { position: relative; overflow: hidden; height: 44px; font-weight: 600;
+  box-shadow: 0 8px 22px -10px color-mix(in srgb, var(--accent) 80%, transparent); transition: box-shadow var(--t-comp) var(--ease), transform var(--t-micro); }
+.login-card .btn-primary:hover { box-shadow: 0 12px 28px -10px color-mix(in srgb, var(--accent) 90%, transparent); }
+.login-card .btn-primary:active { transform: translateY(1px); }
+.login-card .btn-primary::after { content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%);
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .38) 50%, transparent 70%); animation: ls-sheen 1.3s var(--ease) 1.1s both; }
+.login-card .btn-primary:hover::after { animation: ls-sheen 900ms var(--ease) both; }
+@keyframes ls-sheen { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+.login-progress { position: absolute; left: 0; right: 0; top: 0; height: 3px; overflow: hidden; opacity: 0; transition: opacity 200ms; }
+.login-progress::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), #5EE0C8, transparent); animation: ls-progress 1.1s var(--ease) infinite; }
+.login-card:has(form[data-busy]) .login-progress { opacity: 1; }
+@keyframes ls-progress { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+.login-card.has-error { animation: card-in 560ms var(--ease) 120ms both, ls-shake 460ms var(--ease) 700ms both; }
+@keyframes ls-shake { 0%, 100% { translate: 0; } 20% { translate: -6px 0; } 40% { translate: 5px 0; } 60% { translate: -3px 0; } 80% { translate: 2px 0; } }
+
+/* showcase panel: shown on wide screens, always dark */
+.login-stage { display: none; position: relative; overflow: hidden; isolation: isolate; border-radius: 22px; padding: 40px 48px 36px;
+  background: #0A1424; color: #E8EDF6; flex-direction: column; justify-content: space-between; gap: 28px; min-height: calc(100vh - 32px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+@media (min-width: 1000px) {
+  .login-wrap { grid-template-columns: minmax(0, 1.15fr) minmax(440px, 1fr); place-items: stretch; padding: 16px; }
+  .login-stage { display: flex; }
+  .login-col { align-self: center; justify-self: center; }
+  .login-col > .login-logo { display: none; }
+}
+.ls-aurora { position: absolute; inset: 0; z-index: -2; }
+.ls-aurora i { position: absolute; width: 560px; height: 560px; border-radius: 50%; filter: blur(90px); opacity: .5; animation: ls-drift 24s ease-in-out infinite alternate; }
+.ls-aurora i:nth-child(1) { background: #2F5BEA; top: -220px; left: -160px; }
+.ls-aurora i:nth-child(2) { background: #0FA899; bottom: -260px; right: -180px; opacity: .32; animation-delay: -8s; animation-duration: 28s; }
+.ls-aurora i:nth-child(3) { background: #6C4DF0; width: 400px; height: 400px; top: 38%; left: 42%; opacity: .26; animation-delay: -15s; animation-duration: 32s; }
+@keyframes ls-drift { 0% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(70px, 50px, 0) scale(1.12); } 100% { transform: translate3d(-50px, 80px, 0) scale(.94); } }
+.ls-grid { position: absolute; inset: 0; z-index: -1; opacity: .9;
+  background-image: linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px);
+  background-size: 46px 46px; animation: ls-grid 40s linear infinite;
+  mask-image: radial-gradient(75% 65% at 55% 60%, #000, transparent 80%); -webkit-mask-image: radial-gradient(75% 65% at 55% 60%, #000, transparent 80%); }
+@keyframes ls-grid { to { background-position: 46px 46px, 46px 46px; } }
+.ls-brand { display: flex; align-items: center; gap: 10px; animation: fade-up 600ms var(--ease) both; }
+.ls-brand img { width: 34px; height: 34px; }
+.ls-brand b { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+.ls-copy { max-width: 560px; animation: fade-up 700ms var(--ease) 120ms both; }
+.ls-eyebrow { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: #A9C2FF; background: rgba(91, 140, 255, .12); border: 1px solid rgba(91, 140, 255, .26); }
+.ls-pulse { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #3FBF85; flex: none; }
+.ls-pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #3FBF85; animation: ls-ping 1.8s var(--ease) infinite; }
+@keyframes ls-ping { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+.ls-copy h2 { font-size: clamp(28px, 2.6vw, 40px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.12; margin: 18px 0 12px; color: #F3F6FB; }
+.ls-copy h2 span { background: linear-gradient(90deg, #7AA2FF, #5EE0C8 45%, #B9A6FF 75%, #7AA2FF); background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: ls-text 9s linear infinite; }
+@keyframes ls-text { to { background-position: -220% 0; } }
+.ls-sub { margin: 0; color: #9FB0C8; font-size: 15px; max-width: 48ch; }
+
+.ls-scene { position: relative; height: 330px; perspective: 1400px; animation: fade-up 800ms var(--ease) 260ms both; }
+.ls-doc { position: absolute; left: 0; top: 10px; width: min(390px, 56%); height: 300px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .095), rgba(255, 255, 255, .035)); border: 1px solid rgba(255, 255, 255, .12);
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, .5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.ls-doc-b2 { transform: translate(34px, 26px) rotate(5deg); opacity: .3; }
+.ls-doc-b1 { transform: translate(17px, 13px) rotate(2.5deg); opacity: .55; }
+.ls-doc-main { overflow: hidden; padding: 20px 22px; transform-origin: 30% 50%; animation: ls-float 7s ease-in-out infinite alternate; }
+@keyframes ls-float { from { transform: rotateY(-9deg) rotateX(5deg) translateY(0); } to { transform: rotateY(-4deg) rotateX(2deg) translateY(-8px); } }
+.ls-content { height: 100%; }
+.ls-doc-head { display: flex; justify-content: space-between; gap: 12px; }
+.ls-doc-head small { display: block; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: #8E9CB2; }
+.ls-doc-head b { font-size: 15px; font-weight: 600; color: #F3F6FB; font-variant-numeric: tabular-nums; }
+.ls-amt { text-align: right; }
+.ls-vendor { margin: 10px 0 12px; font-size: 13px; color: #C4CEDC; display: flex; align-items: center; gap: 8px; }
+.ls-vendor em { font-style: normal; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(91, 140, 255, .16); color: #A9C2FF; }
+.ls-rows { list-style: none; margin: 0; padding: 0; }
+.ls-rows li, .ls-bank { display: grid; grid-template-columns: 1fr 64px 18px; gap: 12px; align-items: center; padding: 9px 6px; margin: 0 -6px;
+  border-top: 1px solid rgba(255, 255, 255, .07); border-radius: 6px; }
+.ls-bar { height: 7px; border-radius: 4px; background: rgba(255, 255, 255, .14); }
+.ls-bar:nth-child(2) { background: rgba(255, 255, 255, .22); }
+.ls-rows li:nth-child(1) .ls-bar:first-child { width: 82%; } .ls-rows li:nth-child(2) .ls-bar:first-child { width: 64%; }
+.ls-rows li:nth-child(3) .ls-bar:first-child { width: 74%; } .ls-rows li:nth-child(4) .ls-bar:first-child { width: 56%; }
+.ls-bank { grid-template-columns: auto 1fr 18px; font-size: 12.5px; }
+.ls-bank small { color: #8E9CB2; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.ls-bank span { color: #C4CEDC; font-variant-numeric: tabular-nums; text-align: right; }
+.ls-tick { position: relative; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .2); }
+.ls-tick::after { content: ""; position: absolute; left: 5px; top: 2.5px; width: 5px; height: 9px; border: solid #0A1424; border-width: 0 2px 2px 0; transform: rotate(45deg) scale(0); }
+.ls-tick.bad::after { content: "!"; left: 0; top: 0; width: 100%; height: 100%; border: 0; transform: scale(0); font: 700 11px/15px var(--font); text-align: center; color: #0A1424; }
+.ls-rows li:nth-child(1) .ls-tick { --d: .55s; } .ls-rows li:nth-child(2) .ls-tick { --d: .9s; }
+.ls-rows li:nth-child(3) .ls-tick { --d: 1.25s; } .ls-rows li:nth-child(4) .ls-tick { --d: 1.6s; } .ls-bank .ls-tick { --d: 2.05s; }
+.run .ls-tick { animation: ls-tick-ok 380ms cubic-bezier(.2, .9, .3, 1.4) var(--d) both; }
+.run .ls-tick::after { animation: ls-mark 300ms var(--ease) calc(var(--d) + 120ms) both; }
+.run .ls-tick.bad { animation-name: ls-tick-bad; }
+.run .ls-tick.bad::after { animation-name: ls-mark-bad; }
+.run .ls-rows li.bad, .run .ls-bank.bad { animation: ls-row-bad 600ms var(--ease) both; }
+.run .ls-rows li.bad { animation-delay: 1.25s; } .run .ls-bank.bad { animation-delay: 2.05s; }
+.run .ls-rows li:nth-child(1).bad { animation-delay: .55s; } .run .ls-rows li:nth-child(2).bad { animation-delay: .9s; }
+.run .ls-rows li:nth-child(4).bad { animation-delay: 1.6s; }
+@keyframes ls-tick-ok { from { transform: scale(.5); } to { transform: scale(1); background: #3FBF85; border-color: #3FBF85; box-shadow: 0 0 0 4px rgba(63, 191, 133, .16); } }
+@keyframes ls-tick-bad { from { transform: scale(.5); } to { transform: scale(1); background: #F06A5F; border-color: #F06A5F; box-shadow: 0 0 0 4px rgba(240, 106, 95, .18); } }
+@keyframes ls-mark { to { transform: rotate(45deg) scale(1); } }
+@keyframes ls-mark-bad { to { transform: scale(1); } }
+@keyframes ls-row-bad { to { background: rgba(240, 106, 95, .12); box-shadow: inset 2px 0 0 #F06A5F; } }
+.ls-beam { position: absolute; left: 0; right: 0; top: 0; height: 80px; pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent, rgba(91, 140, 255, .14) 60%, rgba(122, 162, 255, .85) 97%, transparent);
+  filter: drop-shadow(0 6px 14px rgba(91, 140, 255, .6)); }
+.run .ls-beam { animation: ls-scan 2.3s cubic-bezier(.45, .05, .55, .95) .15s both; }
+@keyframes ls-scan { 0% { transform: translateY(-80px); opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(300px); opacity: 0; } }
+.ls-stamp { position: absolute; left: 22px; top: 128px; padding: 7px 13px; border-radius: 8px; border: 2px solid #3FBF85; color: #3FBF85; white-space: nowrap;
+  background: rgba(12, 32, 30, .88); box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: 0; transform: rotate(-6deg) scale(1.7); }
+.ls-stamp.bad { border-color: #F06A5F; color: #FF8F86; background: rgba(40, 14, 16, .88); }
+.run .ls-stamp { animation: ls-stamp 460ms cubic-bezier(.2, .9, .3, 1.25) 2.7s both; }
+@keyframes ls-stamp { to { opacity: 1; transform: rotate(-6deg) scale(1); } }
+.ls-log { position: absolute; right: 0; top: 70px; width: min(290px, 42%); padding: 14px 16px; border-radius: 14px;
+  background: rgba(10, 20, 36, .62); border: 1px solid rgba(255, 255, 255, .1); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  box-shadow: 0 24px 50px -16px rgba(0, 0, 0, .6); }
+.ls-log-head { display: flex; align-items: center; gap: 9px; font-size: 11.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: #8E9CB2;
+  padding-bottom: 10px; margin-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.ls-log ol { list-style: none; margin: 0; padding: 0; min-height: 168px; }
+.ls-log li { display: grid; grid-template-columns: 14px 1fr auto; gap: 9px; align-items: center; padding: 5px 0; font-size: 12.5px; color: #C4CEDC;
+  opacity: 0; animation: ls-line 380ms var(--ease) both; }
+.ls-log li i { width: 14px; height: 14px; border-radius: 50%; background: #3FBF85; box-shadow: 0 0 0 3px rgba(63, 191, 133, .14); }
+.ls-log li.bad { color: #FFB1AA; }
+.ls-log li.bad i { background: #F06A5F; box-shadow: 0 0 0 3px rgba(240, 106, 95, .18); }
+.ls-log li small { color: #6F7F97; font-size: 11px; font-variant-numeric: tabular-nums; }
+@keyframes ls-line { from { opacity: 0; transform: translateX(-8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+.ls-scene .ls-content, .ls-scene .ls-log ol { transition: opacity 420ms var(--ease), filter 420ms var(--ease); }
+.ls-scene.out .ls-content, .ls-scene.out .ls-log ol { opacity: 0; filter: blur(4px); }
+.ls-trust { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13px; color: #9FB0C8; animation: fade-up 700ms var(--ease) 420ms both; }
+.ls-trust li { display: inline-flex; align-items: center; gap: 7px; }
+.ls-trust .ic { color: #7AA2FF; }
 
 /* dashboard entrance, once after sign-in */
 body.enter .side { animation: fade-in 320ms var(--ease) both; }

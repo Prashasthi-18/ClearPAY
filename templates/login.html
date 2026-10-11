@@ -15,9 +15,54 @@
 </head>
 <body data-icons="{{ url_for('static', filename='icons.svg') }}">
 <div class="login-wrap">
+  {# Showcase: an invoice being checked, on a loop. Decorative only, hidden from screen readers. #}
+  <aside class="login-stage" aria-hidden="true">
+    <div class="ls-aurora"><i></i><i></i><i></i></div>
+    <div class="ls-grid"></div>
+    <div class="ls-brand"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
+    <div class="ls-copy">
+      <p class="ls-eyebrow"><span class="ls-pulse"></span>AP agent · live check</p>
+      <h2>Every invoice checked against its purchase order, <span>before anyone pays.</span></h2>
+      <p class="ls-sub">ClearPay reads each invoice, checks the vendor, the maths and the PO, and hands your team only the exceptions.</p>
+    </div>
+    <div class="ls-scene" id="ls-scene">
+      <div class="ls-doc ls-doc-b2"></div>
+      <div class="ls-doc ls-doc-b1"></div>
+      <div class="ls-doc ls-doc-main">
+        <div class="ls-content">
+          <div class="ls-doc-head">
+            <div><small>Tax invoice</small><b id="ls-inv">INV-0423</b></div>
+            <div class="ls-amt"><small>Total</small><b id="ls-total">₹1,18,000.00</b></div>
+          </div>
+          <div class="ls-vendor"><span id="ls-vendor">Alpha Office Supplies</span><em id="ls-po">PO-2041</em></div>
+          <ul class="ls-rows">
+            <li><span class="ls-bar"></span><span class="ls-bar"></span><i class="ls-tick"></i></li>
+            <li><span class="ls-bar"></span><span class="ls-bar"></span><i class="ls-tick"></i></li>
+            <li><span class="ls-bar"></span><span class="ls-bar"></span><i class="ls-tick"></i></li>
+            <li><span class="ls-bar"></span><span class="ls-bar"></span><i class="ls-tick"></i></li>
+          </ul>
+          <div class="ls-bank"><small>Bank account</small><span id="ls-bank">•••• 4521</span><i class="ls-tick"></i></div>
+          <div class="ls-stamp" id="ls-stamp">Matched to PO</div>
+        </div>
+        <div class="ls-beam"></div>
+      </div>
+      <div class="ls-log">
+        <div class="ls-log-head"><span class="ls-pulse"></span>Agent steps</div>
+        <ol id="ls-log"></ol>
+      </div>
+    </div>
+    <ul class="ls-trust">
+      <li>{{ icon('shield-check', 'ic-sm') }}AI recommends, people decide</li>
+      <li>{{ icon('scroll-text', 'ic-sm') }}Every step audited</li>
+      <li>{{ icon('wallet', 'ic-sm') }}Never moves money</li>
+    </ul>
+  </aside>
+
   <div class="login-col">
     <div class="login-logo enter-logo"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
-    <div class="panel login-card enter-card">
+    <div class="login-tilt" id="login-tilt">
+    <div class="panel login-card enter-card {{ 'has-error' if error }}">
+      <div class="login-progress"></div>
       <div class="mb-3">
         <h1>Sign in</h1>
         <p class="muted mb-0" style="font-size: 14px">Accounts payable workspace for the AP team, managers and admins.</p>
@@ -41,10 +86,12 @@
         </div>
       </form>
     </div>
+    </div>
     {% if show_demo_hint %}<p class="login-foot enter-logo">Demo users: <b>ap_user</b>, <b>ap_user2</b> (AP team), <b>manager</b>, <b>admin</b>. The password is <code>DEMO_PASSWORD</code> from <code>.env</code>.</p>{% else %}<p class="login-foot enter-logo">Five wrong passwords lock an account for 15 minutes.</p>{% endif %}
   </div>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='login.js') }}"></script>
 </body>
 </html>
