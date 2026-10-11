@@ -231,3 +231,15 @@ def test_google_button_is_hidden_until_configured(app, monkeypatch):
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "")
     assert "Continue with Google" not in app.test_client().get("/login").text
     assert app.test_client().get("/auth/google").status_code == 404
+
+
+# ---------------------------------------------------------------- username or email
+def test_sign_in_with_email_instead_of_username(app):
+    db.execute("UPDATE users SET email='Priya@Example.com' WHERE username='ap_user'")
+    c = app.test_client()
+    password_login(c, "priya@example.com")
+    assert c.get("/").status_code == 200
+    db.execute("UPDATE users SET email='shared@example.com' WHERE username IN ('ap_user', 'ap_user2')")
+    c = app.test_client()
+    r = password_login(c, "shared@example.com")                 # two accounts share it: refused, like a wrong password
+    assert r.status_code == 200 and c.get("/").status_code == 302

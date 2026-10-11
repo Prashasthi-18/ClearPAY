@@ -40,8 +40,13 @@ ROLE_LABELS = {"ap": "AP team", "manager": "Manager", "admin": "Admin"}
 # Login with lockout
 # --------------------------------------------------------------------------
 def authenticate(username, password):
-    """Return (user_row, error_message). Locks the account after repeated failures."""
+    """Return (user_row, error_message). `username` may also be the account's email address.
+    Locks the account after repeated failures."""
+    username = (username or "").strip()
     user = db.query("SELECT * FROM users WHERE username = ? AND active = 1", (username,), one=True)
+    if user is None and "@" in username:            # an email only counts when exactly one active account has it
+        same = db.query("SELECT * FROM users WHERE LOWER(email) = ? AND active = 1", (username.lower(),))
+        user = same[0] if len(same) == 1 else None
     # Same message for unknown user and wrong password, so usernames can't be probed.
     generic = "Wrong username or password."
     if not user:

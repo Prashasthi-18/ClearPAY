@@ -88,13 +88,13 @@
       {% if google_on %}
       <div class="stagger d-flex flex-column gap-3 mb-3">
         <a class="btn btn-google w-100" href="{{ url_for('google_start', next=request.args.get('next')) }}" id="google-btn">{% include "_google_g.html" %}<span>Continue with Google</span></a>
-        <div class="login-or"><span>or sign in with your username</span></div>
+        <div class="login-or"><span>or use your username or email</span></div>
       </div>
       {% endif %}
       <form method="post" autocomplete="on" id="login-form" class="stagger d-flex flex-column gap-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div><label class="form-label" for="u">Username</label>
-          <input class="form-control" id="u" name="username" required autofocus autocomplete="username"></div>
+        <div><label class="form-label" for="u">Username or email</label>
+          <input class="form-control" id="u" name="username" required autofocus autocomplete="username" maxlength="254"></div>
         <div><label class="form-label" for="p">Password</label>
           <div class="pw-wrap"><input class="form-control" id="p" name="password" type="password" required autocomplete="current-password">
             <button class="pw-toggle" type="button" data-pw-toggle="p" aria-label="Show password" aria-pressed="false">{{ icon('eye') }}</button></div></div>

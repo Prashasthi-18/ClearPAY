@@ -315,7 +315,7 @@ def login():
         if security.rate_limited("login", 10, 60):
             error = "Too many attempts from this address. Wait a minute and try again."
         else:
-            username = (request.form.get("username") or "").strip()[:50]
+            username = (request.form.get("username") or "").strip()[:254]          # a username or an email
             user, error = security.authenticate(username, request.form.get("password", ""))
             if user:
                 return _after_first_factor(user, "password", request.args.get("next", ""))
