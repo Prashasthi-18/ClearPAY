@@ -21,7 +21,6 @@
     <div class="ls-inner" id="ls-inner">
     <div class="ls-brand"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
     <div class="ls-copy">
-      <p class="ls-eyebrow"><span class="ls-pulse"></span>AP agent · live check</p>
       <h2>Every invoice checked against its purchase order, <span>before anyone pays.</span></h2>
       <p class="ls-sub">ClearPay reads each invoice, checks the vendor, the maths and the PO, and hands your team only the exceptions.</p>
     </div>
@@ -113,7 +112,7 @@
       {% endif %}
     </div>
     </div>
-    {% if show_demo_hint %}<p class="login-foot enter-logo">Demo users: <b>ap_user</b>, <b>ap_user2</b> (AP team), <b>manager</b>, <b>admin</b>. The password is <code>DEMO_PASSWORD</code> from <code>.env</code>.</p>{% else %}<p class="login-foot enter-logo">Five wrong passwords lock an account for 15 minutes.</p>{% endif %}
+    {% if show_demo_hint %}<p class="login-foot enter-logo">Demo users: <b>ap_user</b>, <b>ap_user2</b> (AP team), <b>manager</b>, <b>admin</b>. The password is <code>DEMO_PASSWORD</code> from <code>.env</code>.</p>{% endif %}
   </div>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>

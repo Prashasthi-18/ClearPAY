@@ -96,7 +96,7 @@ def inject():
             "mail": mailer.status(),
             "watcher": watcher.status(), "mailbox": email_inbox.status(), "unread_count": unread, "last_note_id": last_note,
             "just_in": session.pop("just_in", False) if g.get("user") else False, "today_ist": ist_now(),
-            "show_demo_hint": os.getenv("SHOW_DEMO_HINT", "1") == "1", "db_engine": db.engine(),
+            "show_demo_hint": os.getenv("SHOW_DEMO_HINT", "0") == "1", "db_engine": db.engine(),
             "google_on": google_auth.enabled(), "google_signup": google_auth.signup_mode() == "request"}
 
 

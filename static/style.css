@@ -570,7 +570,7 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
   .login-col > .login-logo { display: none; }
 }
 @media (min-width: 1000px) and (max-height: 820px) {
-  .ls-copy h2 { font-size: clamp(24px, 2.2vw, 32px); margin: 12px 0 8px; }
+  .ls-copy h2 { font-size: clamp(24px, 2.2vw, 32px); margin: 0 0 8px; }
 }
 @media (min-width: 1000px) and (max-height: 700px) {
   .ls-sub { display: none; }
@@ -600,12 +600,10 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 .ls-brand img { width: 34px; height: 34px; }
 .ls-brand b { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
 .ls-copy { max-width: 560px; animation: fade-up 700ms var(--ease) 120ms both; }
-.ls-eyebrow { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  letter-spacing: .07em; text-transform: uppercase; color: #A9C2FF; background: rgba(91, 140, 255, .12); border: 1px solid rgba(91, 140, 255, .26); }
 .ls-pulse { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #3FBF85; flex: none; }
 .ls-pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #3FBF85; animation: ls-ping 1.8s var(--ease) infinite; }
 @keyframes ls-ping { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
-.ls-copy h2 { font-size: clamp(28px, 2.6vw, 40px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.12; margin: 18px 0 12px; color: #F3F6FB; }
+.ls-copy h2 { font-size: clamp(28px, 2.6vw, 40px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.12; margin: 0 0 12px; color: #F3F6FB; }
 .ls-copy h2 span { background: linear-gradient(90deg, #7AA2FF, #5EE0C8 45%, #B9A6FF 75%, #7AA2FF); background-size: 220% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent; animation: ls-text 9s linear infinite; }
 @keyframes ls-text { to { background-position: -220% 0; } }
