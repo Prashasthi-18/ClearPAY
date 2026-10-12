@@ -785,13 +785,13 @@ a.badge-s { text-decoration: none; }
 
 /* ---------- Analytics: tiles, column breakdown, monthly bars, insights ---------- */
 /* One ClearPay-blue ordinal ramp for spend (biggest supplier = strongest step), validated with the dataviz
-   palette checks in both modes; neutral grey for "Other vendors"; brand blue + login-page teal for the tiles. */
+   palette checks in both modes; neutral grey for "Other vendors"; brand blue + indigo-violet for the tiles. */
 :root { --an-s1: #1E3FAE; --an-s2: #2F5BEA; --an-s3: #6A8EF2; --an-s4: #9DB5F7; --an-other: #A9B3C1;
   --an-s1-ink: #fff; --an-s2-ink: #fff; --an-s3-ink: #fff; --an-s4-ink: #0F1B2D; --an-other-ink: #0F1B2D;
-  --an-bar: #2F5BEA; --an-grid: #E6E8EE; --an-blue: #2F5BEA; --an-teal: #0E7C74; --an-head: #1E3FAE; }
+  --an-bar: #2F5BEA; --an-grid: #E6E8EE; --an-blue: #2F5BEA; --an-violet: #3F2DB8; --an-head: #1E3FAE; }
 [data-theme="dark"] { --an-s1: #A9C2FF; --an-s2: #6E95FF; --an-s3: #4870E6; --an-s4: #2F4FA8; --an-other: #46536B;
   --an-s1-ink: #0A1220; --an-s2-ink: #0A1220; --an-s3-ink: #fff; --an-s4-ink: #fff; --an-other-ink: #E8EDF6;
-  --an-bar: #5B8CFF; --an-grid: rgba(148, 163, 184, .14); --an-blue: #2F5BEA; --an-teal: #0E7C74; --an-head: #C9D7FF; }
+  --an-bar: #5B8CFF; --an-grid: rgba(148, 163, 184, .14); --an-blue: #2F5BEA; --an-violet: #3F2DB8; --an-head: #C9D7FF; }
 .an-board { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 28px; box-shadow: var(--shadow-sm); margin-bottom: 20px; }
 .an-title { font-size: clamp(30px, 3.2vw, 42px); font-weight: 700; letter-spacing: -0.035em; margin: 0 0 22px; }
 .an-h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 16px; }
@@ -800,7 +800,7 @@ a.badge-s { text-decoration: none; }
   border: 1.5px solid transparent; animation: fade-up 420ms var(--ease) both; }
 .an-tile:nth-child(2) { animation-delay: 60ms; } .an-tile:nth-child(3) { animation-delay: 120ms; }
 .an-tile.t-blue { background: linear-gradient(135deg, #3A66F0, #1E3FAE); color: #fff; }
-.an-tile.t-teal { background: linear-gradient(135deg, #12958B, var(--an-teal)); color: #fff; }
+.an-tile.t-violet { background: linear-gradient(135deg, #6A55F2, var(--an-violet)); color: #fff; }
 .an-tile.t-plain { background: var(--surface); border-color: var(--line); color: var(--ink); }
 .an-pill { align-self: flex-start; font-size: 12.5px; font-weight: 500; padding: 2px 10px; border-radius: 999px; border: 1.5px solid currentColor; letter-spacing: -0.005em; }
 .an-big { display: block; font-size: clamp(28px, 2.6vw, 36px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.05; font-variant-numeric: tabular-nums; }

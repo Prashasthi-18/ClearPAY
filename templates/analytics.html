@@ -11,7 +11,7 @@
       <div><b class="an-big">{{ a.spend_total|inr_short }}</b>
         <small>{{ a.spend_count }} invoice{{ 's' if a.spend_count != 1 }} · {{ a.paid_total|inr_short }} paid</small></div>
     </div>
-    <div class="an-tile t-teal">
+    <div class="an-tile t-violet">
       <span class="an-pill">Fraud stopped</span>
       <div><b class="an-big">{{ a.fraud_amount|inr_short }}</b>
         <small>{{ a.fraud_count }} risky invoice{{ 's' if a.fraud_count != 1 }} held before payment</small></div>
