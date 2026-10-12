@@ -41,7 +41,7 @@ Admin:  creates and edits purchase orders
 | **Vendor risk score** | Sidebar → *Vendors*, badge on each invoice | A 0–100 score from the vendor's history: duplicates, bank changes, PO mismatches, price differences, rejections. It is smoothed so one bad invoice doesn't make a vendor look high-risk, and each factor is listed. It is information only. |
 | **Ask in plain English** | Dashboard → *Ask in plain English* | Plain rules turn "flagged invoices from Alpha over ₹50,000" into filters, shown as chips. The AI is asked only when the rules understand nothing, and even then it only fills in a filter form that code validates. |
 | **Help guide** | `?` in the top bar | Explains pages, statuses and where things are, from fixed help topics. It has no data access and no tools. |
-| **Rules vs AI** | Trust & testing → *Rules vs AI* | 20 tricky invoices processed twice: rules alone, then rules + AI (see below). |
+| **Rules vs AI** | Admin → Quality & testing → *Rules vs AI* | 20 tricky invoices processed twice: rules alone, then rules + AI (see below). |
 
 ### Purchase-order permissions
 

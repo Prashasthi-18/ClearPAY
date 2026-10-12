@@ -100,11 +100,12 @@ TOPICS = [
     ("notifications", "Notifications", "notification notifications bell alert toast unread",
      "The bell at the top shows notifications: decisions on your invoices, invoices that need you, security alerts. "
      "New ones also pop up in the bottom-right corner.", ("All notifications", "notifications_page"), None),
-    ("testing", "Trust & testing pages", "evaluation red team redteam what-if regression comparison rules vs ai "
-     "testing proof",
-     "Under 'Trust & testing': the Evaluation report (accuracy on labelled invoices), the Red-team lab (attack "
-     "invoices), What-if replay (try different rules on past invoices), Decision regression, and 'Rules vs AI', "
-     "which compares rules alone with rules + AI on tricky invoices.", ("Open Rules vs AI", "compare"), None),
+    ("testing", "Quality & testing pages", "evaluation red team redteam what-if regression comparison rules vs ai "
+     "testing proof quality trust",
+     "'Quality & testing' (in the Admin part of the menu) has five tabs: the Evaluation report (accuracy on labelled "
+     "invoices), Rules vs AI (rules alone compared with rules + AI on tricky invoices), the Red-team lab (attack "
+     "invoices), What-if replay (try different rules on past invoices) and Decision regression.",
+     ("Open Rules vs AI", "compare"), None),
     ("settings", "Settings and users", "settings users admin rules limit tolerance password msme",
      "Admins change the approval limit, tolerances, payment terms, MSME vendors, users and passwords in 'Settings & "
      "users'.", ("Open Settings", "settings"), ("admin",)),

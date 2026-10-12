@@ -852,3 +852,7 @@ a.badge-s { text-decoration: none; }
   .an-tiles, .an-charts { grid-template-columns: 1fr; }
   .an-board { padding: 18px; border-radius: 16px; }
 }
+
+/* Quality & testing: one sidebar entry, its five pages as tabs */
+.qtabs { margin: -4px 0 20px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+.qtabs a { white-space: nowrap; }

@@ -24,34 +24,40 @@
       <img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt="">
       <span><b>ClearPay</b><small>Accounts payable</small></span>
     </a>
+    {# Each role sees only what it uses day to day. Every page still opens from links and bookmarks;
+       the server-side role checks on the routes are unchanged. #}
+    {% set my_role = user.role %}
+    {% set quality = ('evaluation', 'redteam', 'whatif', 'regression', 'compare') %}
     <div class="nav-group">
-      <div class="nav-title">Workspace</div>
-      <a class="nav-link-x {{ 'active' if ep in ('dashboard','invoice') }}" href="{{ url_for('dashboard') }}">{{ icon('layout-dashboard') }}Dashboard</a>
-      {% if user.role in ('manager','admin') %}
+      {% if my_role == 'manager' %}
       <a class="nav-link-x {{ 'active' if ep == 'approvals' }}" href="{{ url_for('approvals') }}">{{ icon('circle-check') }}Approvals {% if pending_count %}<span class="nav-count">{{ pending_count }}</span>{% endif %}</a>
       {% endif %}
-      {% if user.role in ('ap','admin') %}
+      <a class="nav-link-x {{ 'active' if ep in ('dashboard','invoice') }}" href="{{ url_for('dashboard') }}">{{ icon('layout-dashboard') }}Dashboard</a>
+      {% if my_role == 'admin' %}
+      <a class="nav-link-x {{ 'active' if ep == 'approvals' }}" href="{{ url_for('approvals') }}">{{ icon('circle-check') }}Approvals {% if pending_count %}<span class="nav-count">{{ pending_count }}</span>{% endif %}</a>
+      {% endif %}
+      {% if my_role in ('ap','admin') %}
       <a class="nav-link-x {{ 'active' if ep == 'upload' }}" href="{{ url_for('upload') }}">{{ icon('upload') }}Upload invoice</a>
+      <a class="nav-link-x {{ 'active' if ep in ('emails','email_detail') }}" href="{{ url_for('emails') }}">{{ icon('mail') }}Email drafts</a>
+      <a class="nav-link-x {{ 'active' if ep == 'deadlines' }}" href="{{ url_for('deadlines') }}">{{ icon('calendar-clock') }}Payment deadlines</a>
+      <a class="nav-link-x {{ 'active' if ep == 'vendors_page' }}" href="{{ url_for('vendors_page') }}">{{ icon('building-2') }}Vendors</a>
+      {% endif %}
+      {% if my_role == 'admin' %}
+      <a class="nav-link-x {{ 'active' if ep in ('pos','po_new','po_edit') }}" href="{{ url_for('pos') }}">{{ icon('file-text') }}Purchase orders</a>
+      {% endif %}
+      {% if my_role in ('manager','admin') %}
+      <a class="nav-link-x {{ 'active' if ep == 'analytics' }}" href="{{ url_for('analytics') }}">{{ icon('trending-up') }}Analytics</a>
       {% endif %}
       <a class="nav-link-x {{ 'active' if ep == 'ask_page' }}" href="{{ url_for('ask_page') }}">{{ icon('sparkles') }}Ask ClearPay</a>
-      <a class="nav-link-x {{ 'active' if ep == 'deadlines' }}" href="{{ url_for('deadlines') }}">{{ icon('calendar-clock') }}Payment deadlines</a>
-      <a class="nav-link-x {{ 'active' if ep in ('pos','po_new','po_edit') }}" href="{{ url_for('pos') }}">{{ icon('file-text') }}Purchase orders</a>
-      <a class="nav-link-x {{ 'active' if ep == 'vendors_page' }}" href="{{ url_for('vendors_page') }}">{{ icon('building-2') }}Vendors</a>
-      <a class="nav-link-x {{ 'active' if ep == 'analytics' }}" href="{{ url_for('analytics') }}">{{ icon('trending-up') }}Analytics</a>
-      <a class="nav-link-x {{ 'active' if ep in ('emails','email_detail') }}" href="{{ url_for('emails') }}">{{ icon('mail') }}Email drafts</a>
+    </div>
+    {% if my_role == 'admin' %}
+    <div class="nav-group">
+      <div class="nav-title">Admin</div>
+      <a class="nav-link-x {{ 'active' if ep == 'settings' }}" href="{{ url_for('settings') }}">{{ icon('settings') }}Settings &amp; users</a>
+      <a class="nav-link-x {{ 'active' if ep in quality }}" href="{{ url_for('evaluation') }}">{{ icon('shield-check') }}Quality &amp; testing</a>
       <a class="nav-link-x {{ 'active' if ep == 'audit' }}" href="{{ url_for('audit') }}">{{ icon('scroll-text') }}Audit log</a>
     </div>
-    <div class="nav-group">
-      <div class="nav-title">Trust &amp; testing</div>
-      <a class="nav-link-x {{ 'active' if ep == 'evaluation' }}" href="{{ url_for('evaluation') }}">{{ icon('chart-column') }}Evaluation report</a>
-      <a class="nav-link-x {{ 'active' if ep == 'redteam' }}" href="{{ url_for('redteam') }}">{{ icon('shield-alert') }}Red-team lab</a>
-      <a class="nav-link-x {{ 'active' if ep == 'whatif' }}" href="{{ url_for('whatif') }}">{{ icon('sliders-horizontal') }}What-if policy replay</a>
-      <a class="nav-link-x {{ 'active' if ep == 'regression' }}" href="{{ url_for('regression') }}">{{ icon('git-compare') }}Decision regression</a>
-      <a class="nav-link-x {{ 'active' if ep == 'compare' }}" href="{{ url_for('compare') }}">{{ icon('scale') }}Rules vs AI</a>
-      {% if user.role == 'admin' %}
-      <a class="nav-link-x {{ 'active' if ep == 'settings' }}" href="{{ url_for('settings') }}">{{ icon('settings') }}Settings &amp; users</a>
-      {% endif %}
-    </div>
+    {% endif %}
     <div class="mode-pill">{{ icon('activity', 'ic-sm') }}<span>{% if llm_on %}AI: <b>Groq {{ model }}</b>{% else %}AI: <b>offline rule-based mode</b><br>Add GROQ_API_KEY to .env to use Groq.{% endif %}<br>Database: <b>{{ db_engine }}</b></span></div>
     <div class="side-foot">
       {{ avatar(user.full_name) }}
@@ -111,6 +117,15 @@
         {% with msgs = get_flashed_messages(with_categories=true) %}
           {% for cat, m in msgs %}<div class="flash flash-src {{ 'error' if cat == 'error' else 'ok' }}" role="status" data-toast-kind="{{ cat }}" data-toast-text="{{ m }}">{{ icon('circle-alert' if cat == 'error' else 'circle-check') }}<span>{{ m }}</span></div>{% endfor %}
         {% endwith %}
+        {% if ep in quality %}
+        <nav class="tabs qtabs" aria-label="Quality and testing">
+          {% for e, ic, label in (('evaluation', 'chart-column', 'Evaluation report'), ('compare', 'scale', 'Rules vs AI'),
+                                  ('redteam', 'shield-alert', 'Red-team lab'), ('whatif', 'sliders-horizontal', 'What-if replay'),
+                                  ('regression', 'git-compare', 'Decision regression')) %}
+          <a class="{{ 'on' if ep == e }}" href="{{ url_for(e) }}" {{ 'aria-current=page' if ep == e }}>{{ icon(ic, 'ic-sm') }}{{ label }}</a>
+          {% endfor %}
+        </nav>
+        {% endif %}
         {% block content %}{% endblock %}
       </div>
     </main>
