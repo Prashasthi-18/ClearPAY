@@ -16,7 +16,8 @@
 </head>
 <body class="{{ 'enter' if just_in }}" data-csrf="{{ csrf_token() }}" data-last-note="{{ last_note_id }}"
       data-notes-url="{{ url_for('api_notifications') }}" data-notes-read-url="{{ url_for('api_notifications_read') }}"
-      data-icons="{{ url_for('static', filename='icons.svg') }}">
+      data-icons="{{ url_for('static', filename='icons.svg') }}" data-palette-url="{{ url_for('api_palette') }}"
+      data-home-url="{{ url_for('dashboard') }}" data-ask-url="{{ url_for('ask_page') }}">
 {% set ep = request.endpoint %}
 <div class="app">
   <nav class="side" aria-label="Main">
@@ -70,6 +71,9 @@
     <header class="topbar">
       <span class="where">{{ today_ist.strftime('%A, %d %B %Y') }}</span>
       <span class="spacer"></span>
+      <button class="cmdk-btn" id="cmdk-btn" type="button" aria-haspopup="dialog" title="Search invoices or jump to a page">
+        {{ icon('search', 'ic-sm') }}<span class="cmdk-label">Search or jump to…</span><kbd>Ctrl K</kbd>
+      </button>
       <div class="pop" data-pop>
         <button class="icon-btn" id="help-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="help-panel" title="Help: how to use ClearPay">
           {{ icon('circle-help') }}<span class="sr-only">Help</span>
@@ -134,5 +138,6 @@
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 <script src="{{ url_for('static', filename='motion.js') }}"></script>
+<script src="{{ url_for('static', filename='palette.js') }}"></script>
 </body>
 </html>

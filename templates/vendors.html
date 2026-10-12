@@ -4,16 +4,16 @@
 {% block content %}
 <header class="page-head"><div><h1>Vendors</h1>
   <p>Each vendor's risk score comes from its invoice history: duplicates, bank-detail changes, PO mismatches, price differences, arithmetic errors, rejections. It flags vendors that need a closer look. It never blocks, approves or pays anything.</p></div></header>
-<div class="grid-2">
+<div class="grid-2 vendors-grid">
   <section class="panel" aria-label="All vendors">
-    <div class="table-wrap"><table class="tbl" style="min-width: 560px">
+    <div class="table-wrap"><table class="tbl">
       <thead><tr><th>Vendor</th><th>Risk</th><th class="num">Invoices</th><th class="num">Approved spend</th></tr></thead>
       <tbody>{% for v in rows %}
         <tr class="{{ 'sel' if sel and sel.id == v.id }}">
           <td><a class="rowlink" href="{{ url_for('vendors_page', v=v.id) }}">{{ v.name }}</a>{% if v.msme %} <span class="badge-s b-pending">MSME</span>{% endif %}</td>
           <td>{% if v.risk.score is none %}<span class="muted">No history</span>{% else %}
             <span class="conf"><span class="bar" style="width: 70px"><span class="{{ 'bg-bad' if v.risk.level == 'High' else ('bg-warn' if v.risk.level == 'Medium' else 'bg-ok') }}" style="width: {{ v.risk.score }}%"></span></span><span class="badge-s risk-{{ v.risk.level|lower }}">{{ v.risk.level }} · {{ v.risk.score }}</span></span>{% endif %}</td>
-          <td class="num">{{ v.invoices }}{% if v.flagged %} <span class="muted">({{ v.flagged }} flagged/rejected)</span>{% endif %}</td>
+          <td class="num">{{ v.invoices }}{% if v.flagged %} <span class="muted" style="font-size: 12.5px" title="flagged or rejected">· {{ v.flagged }} flagged</span>{% endif %}</td>
           <td class="num">{{ v.spend|inr }}</td></tr>
       {% else %}<tr><td colspan="4" class="empty">No vendors yet.</td></tr>{% endfor %}</tbody></table></div>
   </section>

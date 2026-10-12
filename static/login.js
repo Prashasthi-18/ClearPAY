@@ -242,7 +242,12 @@
       return {
         shock: function (x, y, rgb) { rings.push({ x: x, y: y, t0: performance.now(), rgb: rgb || "122,162,255", max: Math.max(W, H) * .7 }); },
         surge: function (x, y) { surge = { x: x, y: y }; },
-        calm: function () { surge = null; }
+        calm: function () { surge = null; },
+        ping: function (x, y) {                       // light the node nearest (x, y) and send a pulse out from it
+          var best = null, bd = 1e9;
+          nodes.forEach(function (n) { var d = Math.hypot(n.x - x, n.y - y); if (d < bd) { bd = d; best = n; } });
+          if (best) { best.glow = 1; spawn(best, 4); }
+        }
       };
     })();
     // a click on the background sends a ripple through the network
@@ -297,6 +302,14 @@
     cardEl.querySelectorAll("form").forEach(function (f) {
       f.addEventListener("submit", function (e) { setTimeout(function () { if (!e.defaultPrevented) sendOff(); }, 0); });
     });
+    // typing sends a pulse from the card's edge into the network: the page feels alive under your fingers
+    cardEl.querySelectorAll("input:not([type=hidden]):not([type=checkbox])").forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        if (!net) return;
+        var r = inp.getBoundingClientRect(), left = Math.random() < .5;
+        net.ping(left ? r.left - 40 : r.right + 40, r.top + r.height / 2);
+      });
+    });
     var google = cardEl.querySelector(".btn-google");
     if (google) google.addEventListener("click", sendOff);
     window.addEventListener("pageshow", function (e) {                 // back button: the card and field calm down again
@@ -307,5 +320,13 @@
       var bad = cardEl.classList.contains("has-error");
       setTimeout(function () { var c = center(); net.shock(c[0], c[1], bad ? "240,106,95" : "63,191,133"); }, bad ? 700 : 300);
     }
+  }
+
+  // ---------- Caps Lock warning on the password field (the most common reason for a wrong password) ----------
+  var pw = document.getElementById("p"), caps = document.getElementById("caps-warn");
+  if (pw && caps) {
+    var capsCheck = function (e) { if (e.getModifierState) caps.hidden = !e.getModifierState("CapsLock"); };
+    pw.addEventListener("keydown", capsCheck); pw.addEventListener("keyup", capsCheck);
+    pw.addEventListener("blur", function () { caps.hidden = true; });
   }
 })();

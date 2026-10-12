@@ -2,11 +2,13 @@
 {% from "macros.html" import badge, conf_bar, icon, empty %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<header class="page-head">
+{% set hr = today_ist.hour %}
+<header class="page-head dash-hero">
   <div>
     <div class="muted d-flex align-items-center" style="font-size: 13px"><span class="live-dot {{ '' if watcher.running else 'off' }}"></span>
       Inbox watcher {{ 'running' if watcher.running else 'off' }}{% if watcher.last_pickup %}, last file picked up {{ watcher.last_pickup|dt }}{% endif %}</div>
-    <h1>Invoice dashboard</h1>
+    <h1><span class="hero-greet">Good {{ 'morning' if hr < 12 else ('afternoon' if hr < 17 else 'evening') }}, {{ user.full_name.split(' ')[0] }}</span></h1>
+    <p class="hero-sub">{% if s.counts.Flagged %}<b>{{ s.counts.Flagged }}</b> invoice{{ 's' if s.counts.Flagged != 1 }} need{{ 's' if s.counts.Flagged == 1 }} your eyes{% if s.counts.Pending %} and <b>{{ s.counts.Pending }}</b> {{ 'is' if s.counts.Pending == 1 else 'are' }} waiting for a manager{% endif %}. Everything else is handled.{% else %}Nothing needs you right now. The agent is handling every invoice.{% endif %}</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
     {% if unread_count %}<a class="btn btn-outline" href="{{ url_for('notifications_page', show='unread') }}">{{ icon('bell-ring', 'ic-sm') }}{{ unread_count }} unread notification{{ 's' if unread_count != 1 }}</a>{% endif %}
@@ -135,8 +137,8 @@
   </form>
   {% if invoices %}
   <div class="table-wrap">
-    <table class="tbl" style="min-width: 940px">
-      <thead><tr><th>Invoice</th><th>Vendor</th><th>PO</th><th class="num">Amount</th><th>Invoice date</th><th>Due</th><th>Confidence</th><th>Status</th><th>What the agent found</th></tr></thead>
+    <table class="tbl tbl-inv">
+      <thead><tr><th>Invoice</th><th>Vendor</th><th>PO</th><th class="num">Amount</th><th class="col-wide">Invoice date</th><th>Due</th><th>Confidence</th><th>Status</th><th>What the agent found</th></tr></thead>
       <tbody>
       {% for i in invoices %}
         <tr>
@@ -144,11 +146,11 @@
           <td>{{ i.vendor_name or '—' }}</td>
           <td class="mono">{{ i.po_number or '—' }}</td>
           <td class="num">{{ i.total|inr }}</td>
-          <td class="mono">{{ i.invoice_date or '—' }}</td>
+          <td class="mono col-wide">{{ i.invoice_date or '—' }}</td>
           <td>{% set dd = due[i.id] %}<span class="due due-{{ dd.state }}" title="{{ dd.due_date or '' }}">{{ dd.label }}</span></td>
           <td>{{ conf_bar(i.confidence) }}</td>
           <td>{{ badge(i.status) }}</td>
-          <td class="muted">{{ i.decision_reason or 'The agent is working on it' }}</td>
+          <td class="muted reason"><span title="{{ i.decision_reason or '' }}">{{ i.decision_reason or 'The agent is working on it' }}</span></td>
         </tr>
       {% endfor %}
       </tbody>

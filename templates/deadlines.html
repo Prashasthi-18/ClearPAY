@@ -25,7 +25,7 @@
         <td>{{ r.vendor_name or '—' }}{% if r.vendor_msme %} <span class="badge-s b-pending" title="Small supplier: must be paid within {{ s.msme_max_days }} days">MSME</span>{% endif %}</td>
         <td class="num">{{ r.total|inr }}</td><td class="mono">{{ r.invoice_date or '—' }}</td><td class="mono">{{ r.due.due_date or '—' }}</td>
         <td><span class="due due-{{ r.due.state }}">{{ r.due.label }}</span></td>
-        <td>{{ badge(r.status) }}{% if r.ledger_status %} {{ badge(r.ledger_status) }}{% endif %}</td>
+        <td>{% if r.ledger_status %}{{ badge(r.ledger_status) }}{% else %}{{ badge(r.status) }}{% endif %}</td>
         <td class="text-end">{% if r.ledger_status == 'ready_to_pay' and can('record_payment', r) %}
           <form method="post" action="{{ url_for('record_payment', iid=r.id) }}">{{ csrf() }}<button class="btn btn-outline btn-sm" type="submit" data-confirm="Record payment for {{ r.invoice_number or r.file_name }}?" data-confirm-text="Only after the money was actually paid outside ClearPay." data-confirm-ok="Record payment">Record payment</button></form>
           {% elif r.status != 'Approved' %}<span class="muted" style="font-size: 12.5px">needs a decision first</span>{% endif %}</td>

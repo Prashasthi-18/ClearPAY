@@ -105,7 +105,8 @@
           <input class="form-control" id="u" name="username" required autofocus autocomplete="username" maxlength="254"></div>
         <div><label class="form-label" for="p">Password</label>
           <div class="pw-wrap"><input class="form-control" id="p" name="password" type="password" required autocomplete="current-password">
-            <button class="pw-toggle" type="button" data-pw-toggle="p" aria-label="Show password" aria-pressed="false">{{ icon('eye') }}</button></div></div>
+            <button class="pw-toggle" type="button" data-pw-toggle="p" aria-label="Show password" aria-pressed="false">{{ icon('eye') }}</button></div>
+          <div class="caps-warn" id="caps-warn" role="status" hidden>{{ icon('triangle-alert', 'ic-sm') }}Caps Lock is on</div></div>
         <div class="d-flex justify-content-between align-items-center">
           <label class="form-check d-flex align-items-center gap-2 m-0" style="font-size: 14px"><input class="form-check-input m-0" type="checkbox" id="remember"> Remember my username</label>
           <button class="link-btn" type="button" id="forgot-btn" aria-expanded="false" aria-controls="forgot">Forgot password?</button>

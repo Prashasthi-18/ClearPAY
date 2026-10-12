@@ -1019,3 +1019,133 @@ html.intro-play body:has(.ls-intro) .login-wrap { animation: ls-wrap-in 1200ms c
   .ls-copy h2 .ls-w { animation: none; }
   .login-card .btn-primary, .ls-scene .ls-doc, .ls-scene .ls-log, .ls-aurora { translate: none; }
 }
+
+/* ---------- layout polish (tables, empty states, sticky reader) ---------- */
+/* short values never break mid-name ("Gamma / Co"); only free-text columns wrap */
+.tbl td { white-space: nowrap; }
+.tbl td.muted, .tbl td.wrap, .tbl td:last-child:not(.num):not(.text-end) { white-space: normal; }
+.tbl-inv td.reason { min-width: 190px; max-width: 320px; }
+.tbl-inv th, .tbl-inv td { padding-left: 10px; padding-right: 10px; }
+.tbl-inv .bar { width: 40px; }
+.tbl-inv td.reason > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 1599px) { .tbl-inv .col-wide { display: none; } }
+.vendors-grid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+@media (max-width: 1100px) { .vendors-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1001px) { .mail-reader { position: sticky; top: 84px; } }
+/* an empty list fills its card and sits in the middle instead of hugging the top */
+.panel:has(> .attn-list > .empty:only-child) { display: flex; flex-direction: column; }
+.attn-list:has(> .empty:only-child) { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+/* =====================================================================================================
+   After sign-in, act two: quick search (Ctrl+K), a living welcome header, richer stat cards,
+   bars that grow into place, a calm pulse on items that need someone, and a cinematic first entrance.
+   ===================================================================================================== */
+/* quick-search button in the top bar */
+.cmdk-btn { display: inline-flex; align-items: center; gap: 9px; height: 38px; padding: 0 8px 0 12px; margin-right: 6px; min-width: 260px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--muted); font: inherit; font-size: 13.5px;
+  transition: border-color var(--t-micro), box-shadow var(--t-comp) var(--ease), color var(--t-micro); }
+.cmdk-btn:hover { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent); }
+.cmdk-btn:focus-visible { outline: none; box-shadow: var(--focus); }
+.cmdk-btn .cmdk-label { flex: 1; text-align: left; }
+.cmdk kbd, .cmdk-btn kbd { font: 600 11px/1 var(--font); padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--muted); box-shadow: inset 0 -1px 0 var(--line); }
+@media (max-width: 760px) { .cmdk-btn { min-width: 0; } .cmdk-btn .cmdk-label, .cmdk-btn kbd { display: none; } }
+
+/* the palette itself */
+.cmdk { position: fixed; inset: 0; z-index: 9600; display: grid; justify-items: center; align-items: start; padding: 12vh 16px 16px; }
+.cmdk[hidden] { display: none; }
+.cmdk-scrim { position: absolute; inset: 0; background: color-mix(in srgb, #0A1220 45%, transparent); -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  backdrop-filter: blur(6px) saturate(1.2); opacity: 0; transition: opacity 180ms var(--ease); }
+.cmdk-box { position: relative; width: min(640px, 100%); max-height: 70vh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--raised); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, .55), 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+  opacity: 0; transform: translateY(-10px) scale(.97); transition: opacity 200ms var(--ease), transform 280ms cubic-bezier(.16, 1, .3, 1); }
+.cmdk-box::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), #5EE0C8, #B9A6FF, transparent); background-size: 200% 100%; animation: ls-text 3.5s linear infinite; }
+.cmdk.in .cmdk-scrim { opacity: 1; } .cmdk.in .cmdk-box { opacity: 1; transform: none; }
+.cmdk-in { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line-2); color: var(--muted); }
+.cmdk-in .ic { width: 18px; height: 18px; }
+.cmdk-in input { flex: 1; border: 0; outline: none; background: none; color: var(--ink); font: inherit; font-size: 16px; }
+.cmdk-in input::placeholder { color: var(--muted); }
+.cmdk-list { overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
+.cmdk-group { padding: 10px 10px 4px; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cmdk-item { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 10px; cursor: pointer; color: var(--ink);
+  animation: cp-row 320ms cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(var(--k, 0) * 18ms); }
+.cmdk-item.note { cursor: default; color: var(--muted); }
+.cmdk-item.on { background: var(--accent-soft); }
+.cmdk-ic { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink-2); }
+.cmdk-item.on .cmdk-ic { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.cmdk-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cmdk-main b { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmdk-main small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmdk-amt { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13.5px; }
+.cmdk-go { display: inline-flex; opacity: 0; color: var(--accent); transform: rotate(180deg) translateX(4px); transition: opacity 120ms, transform 200ms var(--ease); }
+.cmdk-item.on .cmdk-go { opacity: 1; transform: rotate(180deg); }
+.cmdk-empty { padding: 28px; text-align: center; color: var(--muted); font-size: 14px; }
+.cmdk-foot { display: flex; gap: 16px; padding: 9px 14px; border-top: 1px solid var(--line-2); font-size: 12px; color: var(--muted); }
+.cmdk-foot kbd { margin-right: 3px; padding: 2px 5px; }
+@media (max-width: 640px) { .cmdk-foot { display: none; } .cmdk-item .badge-s { display: none; } }
+
+/* living welcome header on the dashboard: a slow aurora behind the greeting */
+.dash-hero { position: relative; isolation: isolate; padding: 22px 26px; margin: -6px 0 2px; border-radius: 20px; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line)); background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.dash-hero::before, .dash-hero::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; filter: blur(60px); pointer-events: none; }
+.dash-hero::before { width: 520px; height: 260px; left: -120px; top: -140px; background: color-mix(in srgb, var(--accent) 30%, transparent); animation: hero-drift 18s ease-in-out infinite alternate; }
+.dash-hero::after { width: 420px; height: 220px; right: 8%; bottom: -150px; background: color-mix(in srgb, #0FA899 26%, transparent); animation: hero-drift 22s ease-in-out -6s infinite alternate-reverse; }
+@keyframes hero-drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(90px, 30px, 0) scale(1.15); } }
+.dash-hero h1 { font-size: 30px; }
+.hero-greet { background: linear-gradient(90deg, var(--ink) 0%, var(--ink) 40%, var(--accent) 60%, #0FA899 80%, var(--ink) 100%); background-size: 250% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: hero-shine 2.4s cubic-bezier(.4, 0, .2, 1) .5s both; }
+@keyframes hero-shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.hero-sub b { color: var(--ink); font-weight: 650; }
+
+/* stat cards: a coloured edge that lights up, a lift on hover */
+.grid-stats .stat { position: relative; overflow: hidden; transition: transform 260ms cubic-bezier(.16, 1, .3, 1), border-color var(--t-micro), box-shadow var(--t-comp) var(--ease); }
+.grid-stats .stat::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; opacity: .55; transform-origin: left;
+  background: linear-gradient(90deg, var(--stat-c, var(--accent)), color-mix(in srgb, var(--stat-c, var(--accent)) 20%, transparent));
+  animation: grow-x 900ms cubic-bezier(.16, 1, .3, 1) .2s both; transition: opacity var(--t-comp); }
+.grid-stats .stat:nth-child(1) { --stat-c: var(--bad); } .grid-stats .stat:nth-child(2) { --stat-c: var(--warn); }
+.grid-stats .stat:nth-child(3) { --stat-c: var(--ok); } .grid-stats .stat:nth-child(4) { --stat-c: var(--accent); }
+.grid-stats a.stat:hover { transform: translateY(-3px); }
+.grid-stats .stat:hover::before { opacity: 1; }
+.grid-stats .stat .label .ic { color: var(--stat-c, var(--accent)); }
+@keyframes grow-x { from { transform: scaleX(0); } }
+
+/* bars grow into place instead of appearing full */
+.split span, .bar > span, .hb-f { transform-origin: left; animation: grow-x 1100ms cubic-bezier(.16, 1, .3, 1) both; }
+.split span:nth-child(2) { animation-delay: 90ms; } .split span:nth-child(3) { animation-delay: 180ms; } .split span:nth-child(4) { animation-delay: 270ms; }
+
+/* things that need a person breathe gently, so the eye finds them */
+.b-flagged::before, .b-pending::before { animation: dot-breathe 2.4s ease-in-out infinite; }
+@keyframes dot-breathe { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent); } 50% { box-shadow: 0 0 0 4px transparent; } }
+
+/* first page after signing in: the shell slides in, then the content cascades out of a soft blur */
+body.enter .side { animation: enter-side 700ms cubic-bezier(.16, 1, .3, 1) both; }
+body.enter .topbar { animation: fade-in 500ms var(--ease) 150ms both; }
+body.enter .wrap > * { animation: enter-up 800ms cubic-bezier(.16, 1, .3, 1) both; }
+body.enter .grid-stats > * { animation: enter-up 800ms cubic-bezier(.16, 1, .3, 1) both; }
+body.enter .grid-stats { animation: none; }
+body.enter .grid-stats > *:nth-child(1) { animation-delay: 160ms; } body.enter .grid-stats > *:nth-child(2) { animation-delay: 220ms; }
+body.enter .grid-stats > *:nth-child(3) { animation-delay: 280ms; } body.enter .grid-stats > *:nth-child(4) { animation-delay: 340ms; }
+body.enter::after { content: ""; position: fixed; inset: 0; z-index: 9400; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--accent) 16%, transparent) 48%, color-mix(in srgb, #5EE0C8 14%, transparent) 52%, transparent 65%);
+  animation: enter-sweep 1300ms cubic-bezier(.4, 0, .2, 1) 120ms both; }
+@keyframes enter-side { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes enter-up { from { opacity: 0; transform: translateY(22px) scale(.985); filter: blur(6px); } }
+@keyframes enter-sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* sign-in: Caps Lock warning under the password */
+.caps-warn { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12.5px; font-weight: 600; color: var(--warn-ink); animation: fade-up 220ms var(--ease) both; }
+.caps-warn[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-hero::before, .dash-hero::after, .cmdk-box::before { animation: none; }
+  .hero-greet { animation: none; background: none; color: var(--ink); }
+  body.enter::after { display: none; }
+}
+
+/* Edge adds its own show-password eye; ClearPay already has one, so hide the browser's copy */
+input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { display: none; }
+
+/* phones: the four key numbers sit two by two instead of one long column */
+@media (max-width: 600px) { .grid-stats { grid-template-columns: 1fr 1fr; gap: 10px; } .grid-stats .stat { padding: 14px; } .grid-stats .stat .value { font-size: 23px; } .dash-hero { padding: 18px; } .dash-hero h1 { font-size: 25px; } }

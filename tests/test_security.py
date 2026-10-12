@@ -358,3 +358,15 @@ def test_dashboard_search_works_for_text_and_for_amounts(app):
         r = ap.get("/", query_string={"q": q})
         assert r.status_code == 200 and row["invoice_number"] in r.text, q
     assert "No invoices match" in ap.get("/", query_string={"q": "zzz-not-there"}).text
+
+
+def test_quick_search_palette_lists_invoices_only_when_signed_in(app):
+    r = app.test_client().get("/api/palette")
+    assert r.status_code in (302, 401)
+    ap, _ = login(app, "ap_user")
+    _upload_and_wait(ap, _sample("01_clean_match.pdf"))
+    rows = ap.get("/api/palette").get_json()
+    row = db.query("SELECT id, invoice_number FROM invoices", one=True)
+    assert rows and rows[0]["id"] == row["id"] and rows[0]["n"] == row["invoice_number"]
+    assert {"v", "po", "amt", "st", "s"} <= set(rows[0])
+    assert 'id="cmdk-btn"' in ap.get("/").text

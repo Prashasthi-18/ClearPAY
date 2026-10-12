@@ -637,6 +637,17 @@ def api_feed():
                      "invoice": r["invoice_number"] or r["file_name"], "id": r["invoice_id"]} for r in rows])
 
 
+@app.route("/api/palette")
+@security.login_required
+def api_palette():
+    """Recent invoices for the Ctrl+K quick-search palette (same rows the dashboard lists)."""
+    rows = db.query("""SELECT id, invoice_number, file_name, vendor_name, po_number, total, status
+                       FROM invoices ORDER BY id DESC LIMIT 200""")
+    return jsonify([{"id": r["id"], "n": r["invoice_number"] or r["file_name"], "v": r["vendor_name"] or "",
+                     "po": r["po_number"] or "", "amt": inr(r["total"]) if r["total"] is not None else "",
+                     "st": status_label(r["status"]), "s": r["status"] or ""} for r in rows])
+
+
 # ==========================================================================
 # Invoice report
 # ==========================================================================

@@ -20,7 +20,7 @@
       </a>
     {% else %}<div class="empty">No emails yet.</div>{% endfor %}
   </section>
-  <section class="panel panel-pad" aria-label="Selected email">
+  <section class="panel panel-pad mail-reader" aria-label="Selected email">
     {% if sel %}
     <form method="post" class="d-flex flex-column gap-3">
       {{ csrf() }}
