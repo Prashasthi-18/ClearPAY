@@ -950,9 +950,8 @@ a.badge-s { text-decoration: none; }
 @media print { .rv { opacity: 1 !important; transform: none !important; filter: none !important; } .nav-progress, .stamp-stage { display: none; } }
 
 /* =====================================================================================================
-   Sign-in page, act two (login.js): opening titles, a live verification network behind everything,
-   word-by-word headline, depth parallax on the showcase, magnetic sign-in button, click ripples,
-   and the network streaming into the card when you press Sign in.
+   Sign-in page, act two (login.js): opening titles, word-by-word headline, depth parallax on the
+   showcase, magnetic sign-in button, click ripples, and a glow on the card while it signs in.
    ===================================================================================================== */
 /* opening titles: the mark resolves, a light line draws across, the screen opens along it */
 .ls-intro { position: fixed; inset: 0; z-index: 9500; pointer-events: none; animation: ls-intro-gone 1ms linear 1.9s both; }
@@ -985,8 +984,6 @@ html.intro-play body:has(.ls-intro) { --intro: 1.05s; }
 html.intro-play body:has(.ls-intro) .login-wrap { animation: ls-wrap-in 1200ms cubic-bezier(.16, 1, .3, 1) 1.05s both; }
 @keyframes ls-wrap-in { from { transform: scale(1.06); } }
 
-/* the live network (canvas) sits between the aurora and the grid */
-.ls-net { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 /* headline: word by word, out of a blur */
 .ls-copy h2 .ls-w { display: inline-block; animation: ls-word 900ms cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(.25s + var(--intro, 0s) + var(--i) * 55ms); }
@@ -1015,7 +1012,7 @@ html.intro-play body:has(.ls-intro) .login-wrap { animation: ls-wrap-in 1200ms c
   transition: box-shadow 500ms var(--ease); }
 
 @media (prefers-reduced-motion: reduce) {
-  .ls-intro, .ls-net { display: none; }
+  .ls-intro { display: none; }
   .ls-copy h2 .ls-w { animation: none; }
   .login-card .btn-primary, .ls-scene .ls-doc, .ls-scene .ls-log, .ls-aurora { translate: none; }
 }
