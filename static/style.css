@@ -619,7 +619,7 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 .ls-copy h2 span { background: linear-gradient(90deg, #7AA2FF, #5EE0C8 45%, #B9A6FF 75%, #7AA2FF); background-size: 220% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent; animation: ls-text 9s linear infinite; }
 @keyframes ls-text { to { background-position: -220% 0; } }
-.ls-sub { margin: 0; color: #9FB0C8; font-size: 15px; max-width: 48ch; }
+.ls-sub { margin: 0; color: #9FB0C8; font-size: 15px; max-width: 62ch; }
 
 .ls-scene { position: relative; height: 330px; width: 100%; max-width: 680px; perspective: 1400px; animation: fade-up 800ms var(--ease) calc(260ms + var(--intro, 0s)) both; }
 .ls-doc { position: absolute; left: 0; top: 10px; width: min(390px, 56%); height: 300px; border-radius: 16px;
