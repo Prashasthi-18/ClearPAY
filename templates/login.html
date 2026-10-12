@@ -14,8 +14,16 @@
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 <body class="login-page" data-icons="{{ url_for('static', filename='icons.svg') }}">
+{% if not error and not notice and step != 'mfa' %}
+{# Opening titles, once per browser session (theme.js hides it on later visits). Decorative only. #}
+<div class="ls-intro" id="ls-intro" aria-hidden="true">
+  <div class="ls-intro-half top"></div><div class="ls-intro-half bot"></div>
+  <span class="ls-intro-line"></span>
+  <div class="ls-intro-core"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
+</div>
+{% endif %}
 <div class="login-wrap">
-  <div class="ls-bg" aria-hidden="true"><div class="ls-aurora"><i></i><i></i><i></i></div><div class="ls-grid"></div></div>
+  <div class="ls-bg" aria-hidden="true"><div class="ls-aurora"><i></i><i></i><i></i></div><div class="ls-grid"></div><canvas class="ls-net" id="ls-net"></canvas></div>
   {# Showcase: an invoice being checked, on a loop. Decorative only, hidden from screen readers. #}
   <aside class="login-stage" aria-hidden="true">
     <div class="ls-inner" id="ls-inner">

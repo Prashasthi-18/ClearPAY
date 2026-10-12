@@ -3,6 +3,10 @@
 (function () {
   var root = document.documentElement;
   root.classList.add("js");
+  try {                                     // sign-in opening titles: once per browser session, never with reduced motion
+    if (sessionStorage.getItem("cp-intro")) root.classList.add("intro-seen");
+    else if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) root.classList.add("intro-play");
+  } catch (e) {}
   var server = root.getAttribute("data-theme-pref");
   var pref = server || "system";
   try { if (!server) { pref = localStorage.getItem("cp-theme") || "system"; } else { localStorage.setItem("cp-theme", server); } } catch (e) {}

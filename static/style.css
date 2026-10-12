@@ -484,12 +484,12 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 .pw-toggle:hover { color: var(--ink); background: var(--surface-2); }
 .forgot-panel { font-size: 13.5px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; color: var(--ink-2); }
 .login-foot { font-size: 12.5px; color: var(--muted); text-align: center; }
-.enter-logo { animation: logo-in 520ms var(--ease) both; }
-.enter-card { animation: card-in 560ms var(--ease) 120ms both; }
+.enter-logo { animation: logo-in 520ms var(--ease) var(--intro, 0s) both; }
+.enter-card { animation: card-in 560ms var(--ease) calc(120ms + var(--intro, 0s)) both; }
 .enter-card .stagger > * { animation: fade-up 420ms var(--ease) both; }
-.enter-card .stagger > *:nth-child(1) { animation-delay: 220ms; } .enter-card .stagger > *:nth-child(2) { animation-delay: 270ms; }
-.enter-card .stagger > *:nth-child(3) { animation-delay: 320ms; } .enter-card .stagger > *:nth-child(4) { animation-delay: 370ms; }
-.enter-card .stagger > *:nth-child(5) { animation-delay: 420ms; } .enter-card .stagger > *:nth-child(6) { animation-delay: 470ms; }
+.enter-card .stagger > *:nth-child(1) { animation-delay: calc(220ms + var(--intro, 0s)); } .enter-card .stagger > *:nth-child(2) { animation-delay: calc(270ms + var(--intro, 0s)); }
+.enter-card .stagger > *:nth-child(3) { animation-delay: calc(320ms + var(--intro, 0s)); } .enter-card .stagger > *:nth-child(4) { animation-delay: calc(370ms + var(--intro, 0s)); }
+.enter-card .stagger > *:nth-child(5) { animation-delay: calc(420ms + var(--intro, 0s)); } .enter-card .stagger > *:nth-child(6) { animation-delay: calc(470ms + var(--intro, 0s)); }
 @keyframes logo-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 @keyframes card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -608,10 +608,10 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
   background-size: 46px 46px; animation: ls-grid 40s linear infinite;
   mask-image: radial-gradient(90% 85% at 50% 55%, #000, transparent 85%); -webkit-mask-image: radial-gradient(90% 85% at 50% 55%, #000, transparent 85%); }
 @keyframes ls-grid { to { background-position: 46px 46px, 46px 46px; } }
-.ls-brand { display: flex; align-items: center; gap: 10px; animation: fade-up 600ms var(--ease) both; }
+.ls-brand { display: flex; align-items: center; gap: 10px; animation: fade-up 600ms var(--ease) var(--intro, 0s) both; }
 .ls-brand img { width: 34px; height: 34px; }
 .ls-brand b { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
-.ls-copy { max-width: 560px; animation: fade-up 700ms var(--ease) 120ms both; }
+.ls-copy { max-width: 560px; animation: fade-up 700ms var(--ease) calc(120ms + var(--intro, 0s)) both; }
 .ls-pulse { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #3FBF85; flex: none; }
 .ls-pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #3FBF85; animation: ls-ping 1.8s var(--ease) infinite; }
 @keyframes ls-ping { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
@@ -621,7 +621,7 @@ html:has(body.login-page), body.login-page { height: 100%; overflow: hidden; bac
 @keyframes ls-text { to { background-position: -220% 0; } }
 .ls-sub { margin: 0; color: #9FB0C8; font-size: 15px; max-width: 48ch; }
 
-.ls-scene { position: relative; height: 330px; width: 100%; max-width: 680px; perspective: 1400px; animation: fade-up 800ms var(--ease) 260ms both; }
+.ls-scene { position: relative; height: 330px; width: 100%; max-width: 680px; perspective: 1400px; animation: fade-up 800ms var(--ease) calc(260ms + var(--intro, 0s)) both; }
 .ls-doc { position: absolute; left: 0; top: 10px; width: min(390px, 56%); height: 300px; border-radius: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, .095), rgba(255, 255, 255, .035)); border: 1px solid rgba(255, 255, 255, .12);
   box-shadow: 0 30px 60px -12px rgba(0, 0, 0, .5); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
@@ -948,3 +948,74 @@ a.badge-s { text-decoration: none; }
   .panel.is-lit, .an-card.is-lit { background-image: none; }
 }
 @media print { .rv { opacity: 1 !important; transform: none !important; filter: none !important; } .nav-progress, .stamp-stage { display: none; } }
+
+/* =====================================================================================================
+   Sign-in page, act two (login.js): opening titles, a live verification network behind everything,
+   word-by-word headline, depth parallax on the showcase, magnetic sign-in button, click ripples,
+   and the network streaming into the card when you press Sign in.
+   ===================================================================================================== */
+/* opening titles: the mark resolves, a light line draws across, the screen opens along it */
+.ls-intro { position: fixed; inset: 0; z-index: 9500; pointer-events: none; animation: ls-intro-gone 1ms linear 1.9s both; }
+.intro-seen .ls-intro { display: none; }
+@keyframes ls-intro-gone { to { visibility: hidden; } }
+.ls-intro-half { position: absolute; left: 0; right: 0; height: 50.5%; background: #0A1424; }
+.ls-intro-half.top { top: 0; animation: ls-half-up 820ms cubic-bezier(.76, 0, .24, 1) 1.05s both; }
+.ls-intro-half.bot { bottom: 0; animation: ls-half-down 820ms cubic-bezier(.76, 0, .24, 1) 1.05s both; }
+.ls-intro-half.top { background: linear-gradient(180deg, #0A1424 70%, #0D1B33); }
+.ls-intro-half.bot { background: linear-gradient(0deg, #0A1424 70%, #0D1B33); }
+@keyframes ls-half-up { to { transform: translateY(-101%); } }
+@keyframes ls-half-down { to { transform: translateY(101%); } }
+.ls-intro-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; transform: scaleX(0);
+  background: linear-gradient(90deg, transparent, #7AA2FF 25%, #5EE0C8 50%, #B9A6FF 75%, transparent);
+  box-shadow: 0 0 18px 2px rgba(94, 224, 200, .55), 0 0 60px 6px rgba(91, 140, 255, .35);
+  animation: ls-line-draw 640ms cubic-bezier(.7, 0, .2, 1) .5s both, ls-line-fade 520ms var(--ease) 1.2s both; }
+@keyframes ls-line-draw { to { transform: scaleX(1); } }
+@keyframes ls-line-fade { to { opacity: 0; transform: scaleX(1) scaleY(6); } }
+.ls-intro-core { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  animation: ls-core-out 420ms cubic-bezier(.4, 0, 1, 1) .98s both; }
+.ls-intro-core img { width: 68px; height: 68px; margin-bottom: 70px; filter: drop-shadow(0 0 28px rgba(91, 140, 255, .55));
+  animation: ls-mark-in 760ms cubic-bezier(.2, .9, .3, 1.15) .05s both; }
+.ls-intro-core b { position: absolute; top: calc(50% + 22px); color: #F3F6FB; font-size: 22px; font-weight: 700;
+  animation: ls-word-in 900ms cubic-bezier(.16, 1, .3, 1) .3s both; }
+@keyframes ls-mark-in { from { opacity: 0; transform: scale(.55) rotate(-25deg); filter: blur(12px); } }
+@keyframes ls-word-in { from { opacity: 0; letter-spacing: .55em; filter: blur(8px); } to { opacity: 1; letter-spacing: -0.02em; filter: none; } }
+@keyframes ls-core-out { to { opacity: 0; transform: scale(1.12); filter: blur(6px); } }
+/* while the titles run, the page's entrances wait (theme.js sets .intro-play before first paint), then it settles in */
+html.intro-play body:has(.ls-intro) { --intro: 1.05s; }
+html.intro-play body:has(.ls-intro) .login-wrap { animation: ls-wrap-in 1200ms cubic-bezier(.16, 1, .3, 1) 1.05s both; }
+@keyframes ls-wrap-in { from { transform: scale(1.06); } }
+
+/* the live network (canvas) sits between the aurora and the grid */
+.ls-net { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* headline: word by word, out of a blur */
+.ls-copy h2 .ls-w { display: inline-block; animation: ls-word 900ms cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(.25s + var(--intro, 0s) + var(--i) * 55ms); }
+@keyframes ls-word { from { opacity: 0; transform: translateY(.45em) rotateX(-50deg); filter: blur(8px); } }
+.ls-copy h2 { perspective: 600px; }
+
+/* showcase depth: layers move at different speeds with the pointer (individual `translate`, so the float keeps running) */
+.ls-scene .ls-doc, .ls-scene .ls-log { transition: translate 900ms cubic-bezier(.16, 1, .3, 1); }
+.ls-scene .ls-doc-main { translate: calc(var(--px, 0) * 14px) calc(var(--py, 0) * 10px); }
+.ls-scene .ls-doc-b1 { translate: calc(var(--px, 0) * 8px) calc(var(--py, 0) * 6px); }
+.ls-scene .ls-doc-b2 { translate: calc(var(--px, 0) * 4px) calc(var(--py, 0) * 3px); }
+.ls-scene .ls-log { translate: calc(var(--px, 0) * 26px) calc(var(--py, 0) * 18px); }
+.ls-aurora { translate: calc(var(--px, 0) * -22px) calc(var(--py, 0) * -16px); transition: translate 1.4s cubic-bezier(.16, 1, .3, 1); }
+
+/* sign-in card: magnetic button, click ripple, focus pulse, and "sending" while the form goes */
+.login-card .btn-primary { translate: var(--bx, 0) var(--by, 0); transition: box-shadow var(--t-comp) var(--ease), transform var(--t-micro), translate 380ms cubic-bezier(.16, 1, .3, 1); }
+.btn-google { position: relative; overflow: hidden; }
+.ls-ripple { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 70%); animation: ls-ripple 700ms cubic-bezier(.16, 1, .3, 1) both; }
+.btn-google .ls-ripple { background: radial-gradient(circle, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%); }
+@keyframes ls-ripple { from { transform: scale(0); opacity: 1; } to { transform: scale(40); opacity: 0; } }
+.login-card .form-control:focus { animation: ls-focus 750ms var(--ease); }
+@keyframes ls-focus { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } to { box-shadow: 0 0 0 12px transparent; } }
+.login-card.is-sending::after { opacity: 1; animation-duration: 1.1s; }
+.login-card.is-sending { box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent), 0 0 80px -10px color-mix(in srgb, #5EE0C8 55%, transparent);
+  transition: box-shadow 500ms var(--ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-intro, .ls-net { display: none; }
+  .ls-copy h2 .ls-w { animation: none; }
+  .login-card .btn-primary, .ls-scene .ls-doc, .ls-scene .ls-log, .ls-aurora { translate: none; }
+}
