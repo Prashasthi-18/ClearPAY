@@ -3,6 +3,8 @@
 (function () {
   var root = document.documentElement;
   root.classList.add("js");
+  var hr = new Date().getHours();             // the sign-in page's sky follows the visitor's clock: dawn, day, dusk, night
+  root.classList.add("tod-" + (hr >= 5 && hr < 8 ? "dawn" : hr >= 8 && hr < 17 ? "day" : hr >= 17 && hr < 20 ? "dusk" : "night"));
   try {                                     // sign-in opening titles: once per browser session, never with reduced motion
     if (sessionStorage.getItem("cp-intro")) root.classList.add("intro-seen");
     else if (!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) root.classList.add("intro-play");

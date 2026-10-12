@@ -24,15 +24,16 @@
 {% endif %}
 <div class="login-wrap">
   <div class="ls-bg" aria-hidden="true"><div class="ls-aurora"><i></i><i></i><i></i></div><div class="ls-grid"></div></div>
-  {# Showcase: an invoice being checked, on a loop. Decorative only, hidden from screen readers. #}
-  <aside class="login-stage" aria-hidden="true">
+  {# Showcase: an invoice being checked, on a loop; visitors can pick a scenario or flip the invoice to its PO.
+     The animated scene is decorative (hidden from screen readers); the buttons and a short live summary are not. #}
+  <aside class="login-stage" aria-label="What ClearPay checks">
     <div class="ls-inner" id="ls-inner">
-    <div class="ls-brand"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
+    <div class="ls-brand" aria-hidden="true"><img src="{{ url_for('static', filename='brand/clearpay-mark.svg') }}" alt=""><b>ClearPay</b></div>
     <div class="ls-copy">
       <h2>Every invoice checked against its purchase order, <span>before anyone pays.</span></h2>
       <p class="ls-sub">An AI agent reads every invoice, verifies the vendor, the totals and the PO line&nbsp;by&nbsp;line, and puts only the exceptions in front of your team.</p>
     </div>
-    <div class="ls-scene" id="ls-scene">
+    <div class="ls-scene" id="ls-scene" aria-hidden="true">
       <div class="ls-doc ls-doc-b2"></div>
       <div class="ls-doc ls-doc-b1"></div>
       <div class="ls-doc ls-doc-main">
@@ -51,13 +52,32 @@
           <div class="ls-bank"><small>Bank account</small><span id="ls-bank">•••• 4521</span><i class="ls-tick"></i></div>
           <div class="ls-stamp" id="ls-stamp">Matched to PO</div>
         </div>
+        <div class="ls-po" id="ls-po-face">
+          <div class="ls-doc-head">
+            <div><small>Purchase order</small><b id="ls-po-no">PO-2041</b></div>
+            <div class="ls-amt"><small>Approved</small><b id="ls-po-total">₹1,18,000.00</b></div>
+          </div>
+          <div class="ls-vendor"><span id="ls-po-vendor">Alpha Office Supplies</span><em>Issued by Purchasing</em></div>
+          <ul class="ls-po-lines" id="ls-po-lines"></ul>
+          <div class="ls-po-foot" id="ls-po-foot">Every line matches the invoice</div>
+        </div>
         <div class="ls-beam"></div>
+        <span class="ls-drag-hint">Drag to flip</span>
       </div>
       <div class="ls-log">
         <div class="ls-log-head"><span class="ls-pulse"></span>Agent steps</div>
         <ol id="ls-log"></ol>
       </div>
     </div>
+    <div class="ls-try" role="group" aria-label="Try a scenario">
+      <span class="ls-try-label">Try it</span>
+      <button type="button" class="ls-chip" data-scene="0" aria-pressed="true">Clean invoice</button>
+      <button type="button" class="ls-chip" data-scene="1" aria-pressed="false">Bank changed</button>
+      <button type="button" class="ls-chip" data-scene="2" aria-pressed="false">Price above PO</button>
+      <button type="button" class="ls-chip" data-scene="3" aria-pressed="false">Duplicate</button>
+      <button type="button" class="ls-chip ls-chip-flip" id="ls-flip-btn" aria-pressed="false">{{ icon('refresh-cw', 'ic-sm') }}See the PO</button>
+    </div>
+    <p class="sr-only" id="ls-live" aria-live="polite"></p>
     </div>
   </aside>
 
@@ -66,6 +86,15 @@
     <div class="login-tilt" id="login-tilt">
     <div class="panel login-card enter-card {{ 'has-error' if error }}">
       <div class="login-progress"></div>
+      {# Shown after a correct sign-in (login.js flips the card to this face, then opens the dashboard). #}
+      <div class="login-welcome" id="login-welcome" hidden>
+        <span class="lw-badge"><span class="lw-avatar" id="lw-avatar"></span>
+          <svg class="lw-ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="56"/></svg>
+          <svg class="lw-tick" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M7 12.5l3.2 3.2L17 9"/></svg></span>
+        <h2 id="lw-title">Welcome back</h2>
+        <p>Opening your workspace…</p>
+        <span class="lw-bar" aria-hidden="true"></span>
+      </div>
       {% if step == 'mfa' %}
       {# Messages replace the subtitle in a fixed-height slot, so the card never changes size. #}
       <div class="login-head">
@@ -86,6 +115,8 @@
       </form>
       {% else %}
       <div class="login-head">
+        {% set hr = today_ist.hour %}
+        <p class="login-greet" id="login-greet">Good {{ 'morning' if 5 <= hr < 12 else ('afternoon' if 12 <= hr < 17 else 'evening') }}</p>
         <h1>Sign in</h1>
         <div class="login-msg">
           {% if error %}<div class="login-alert bad" role="alert">{{ icon('circle-alert', 'ic-sm') }}<span>{{ error }}</span></div>

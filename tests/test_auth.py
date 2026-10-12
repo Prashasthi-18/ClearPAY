@@ -318,3 +318,32 @@ def test_waiting_person_trying_again_resends_only_when_no_live_request(app, monk
     db.execute("DELETE FROM access_requests")                            # like a request made before emails existed
     google_round_trip(app.test_client(), monkeypatch)
     assert count() == 2
+
+
+# ---------------------------------------------------------------- sign-in without a reload (login.js)
+ASYNC = {"X-ClearPay-Async": "1"}
+
+
+def test_background_sign_in_answers_in_json(app):
+    c = app.test_client()
+    t = token(c.get("/login").text)
+    bad = c.post("/login", data={"username": "ap_user", "password": "wrong", "csrf_token": t}, headers=ASYNC).get_json()
+    assert bad["ok"] is False and bad["error"]
+    assert c.get("/").status_code == 302                                  # still signed out
+    good = c.post("/login", data={"username": "ap_user", "password": PASSWORD, "csrf_token": t}, headers=ASYNC).get_json()
+    assert good["ok"] is True and good["next"].endswith("/") and good["first"] == user("ap_user")["full_name"].split()[0]
+    assert good["initials"] and good["color"]
+    assert c.get("/").status_code == 200                                  # the session is real
+
+
+def test_background_sign_in_hands_over_to_the_code_step(app):
+    secret, _ = turn_on_mfa()
+    c = app.test_client()
+    t = token(c.get("/login").text)
+    r = c.post("/login", data={"username": "ap_user", "password": PASSWORD, "csrf_token": t}, headers=ASYNC).get_json()
+    assert r["ok"] is True and r.get("mfa") and r["next"].endswith("/login/mfa") and "name" not in r
+    page = c.get("/login/mfa").text
+    wrong = c.post("/login/mfa", data={"code": "000000", "csrf_token": token(page)}, headers=ASYNC).get_json()
+    assert wrong["ok"] is False and "code" in wrong["error"]
+    right = c.post("/login/mfa", data={"code": mfa.code_at(secret, mfa.current_step()), "csrf_token": token(page)}, headers=ASYNC).get_json()
+    assert right["ok"] is True and right["name"] and c.get("/").status_code == 200

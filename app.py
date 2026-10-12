@@ -304,6 +304,24 @@ def _signed_in(user, method, nxt, second=None):
     return redirect(_safe_next(nxt))
 
 
+def _wants_async():
+    """The sign-in page posts in the background (login.js) so it can animate the result without a reload."""
+    return request.headers.get("X-ClearPay-Async") == "1"
+
+
+def _async_outcome(resp):
+    """Turn the redirect a sign-in step ended with into JSON for the page's background sign-in."""
+    nxt = resp.headers.get("Location", url_for("dashboard"))
+    if session.get("uid"):
+        u = db.query("SELECT full_name FROM users WHERE id=?", (session["uid"],), one=True)
+        name = u["full_name"] if u else ""
+        return jsonify(ok=True, next=nxt, name=name, first=(name.split() or [""])[0],
+                       initials=initials(name), color=avatar_color(name))
+    if session.get("mfa_pending"):
+        return jsonify(ok=True, mfa=True, next=nxt)
+    return jsonify(ok=False, restart=True, next=nxt)     # e.g. locked during the code step: the login page explains
+
+
 def _login_page(**kw):
     kw.setdefault("error", session.pop("login_error", None))
     kw.setdefault("notice", session.pop("login_notice", None))
@@ -320,9 +338,12 @@ def login():
             username = (request.form.get("username") or "").strip()[:254]          # a username or an email
             user, error = security.authenticate(username, request.form.get("password", ""))
             if user:
-                return _after_first_factor(user, "password", request.args.get("next", ""))
+                resp = _after_first_factor(user, "password", request.args.get("next", ""))
+                return _async_outcome(resp) if _wants_async() else resp
             db.log_audit(None, username or "(blank)", "system", "login_failed", "blocked",
                          f"Failed sign-in from {request.remote_addr}")
+        if error and _wants_async():
+            return jsonify(ok=False, error=error)
     return _login_page(error=error) if error else _login_page()
 
 
@@ -358,7 +379,7 @@ def login_mfa():
         if locked:
             session.clear()
             session["login_error"] = locked
-            return redirect(url_for("login"))
+            return jsonify(ok=False, restart=True, next=url_for("login")) if _wants_async() else redirect(url_for("login"))
         if security.rate_limited("mfa", 10, 60):
             error = "Too many attempts from this address. Wait a minute and try again."
         else:
@@ -370,15 +391,18 @@ def login_mfa():
                     notifications.security_event(user["id"], "A recovery code was used to sign in",
                                                  f"Signed in with a recovery code at {ist_now():%H:%M IST}; {left} left. "
                                                  "If you lost your phone, set up the authenticator app again in Account → Security.")
-                return _signed_in(user, p["method"], p["next"], second=how)
+                resp = _signed_in(user, p["method"], p["next"], second=how)
+                return _async_outcome(resp) if _wants_async() else resp
             db.log_audit(None, user["username"], "system", "mfa_failed", "blocked",
                          f"Wrong authenticator code from {request.remote_addr}")
             locked = security.record_failure(user, "wrong authenticator codes")
             if locked:
                 session.clear()
                 session["login_error"] = locked
-                return redirect(url_for("login"))
+                return jsonify(ok=False, restart=True, next=url_for("login")) if _wants_async() else redirect(url_for("login"))
             error = "That code isn't right. Use the current 6-digit code from your authenticator app, or a recovery code."
+        if error and _wants_async():
+            return jsonify(ok=False, error=error)
     return _login_page(step="mfa", error=error, mfa_name=user["full_name"])
 
 
