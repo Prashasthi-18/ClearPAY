@@ -90,9 +90,6 @@ html.theme-switching, html.theme-switching * { transition: background-color var(
 .btn-ghost-dark { background: none; border: 1px solid #2A3952; color: var(--side-ink); border-radius: 8px; font-size: 12px; padding: 6px 10px;
   display: inline-flex; gap: 6px; align-items: center; transition: border-color var(--t-micro), color var(--t-micro); }
 .btn-ghost-dark:hover { color: #fff; border-color: #4A5C7C; }
-.mode-pill { margin: 0 10px; font-size: 12px; color: var(--side-muted); line-height: 1.45; display: flex; gap: 8px; }
-.mode-pill b { color: var(--side-ink); font-weight: 500; }
-.mode-pill .ic { color: #6F97FF; margin-top: 1px; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .content { padding: 24px 32px 56px; }
 .wrap { max-width: 1240px; display: flex; flex-direction: column; gap: 20px; }
@@ -1148,11 +1145,9 @@ input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { display:
 @media (max-width: 600px) { .grid-stats { grid-template-columns: 1fr 1fr; gap: 10px; } .grid-stats .stat { padding: 14px; } .grid-stats .stat .value { font-size: 23px; } .dash-hero { padding: 18px; } .dash-hero h1 { font-size: 25px; } }
 
 /* =====================================================================================================
-   Sign-in page, act three: greeting, sign-in without a reload (welcome flip, then the card becomes the
+   Sign-in page, act three: sign-in without a reload (welcome flip, then the card becomes the
    dashboard header), a showcase visitors can drive, the invoice that flips to its PO, and skies by time of day.
    ===================================================================================================== */
-.login-greet { margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: .02em;
-  background: linear-gradient(90deg, var(--accent), #0FA899); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* the card turns over to a welcome after a correct sign-in */
 .login-tilt { perspective: 1200px; }

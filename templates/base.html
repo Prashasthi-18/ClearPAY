@@ -59,7 +59,6 @@
       <a class="nav-link-x {{ 'active' if ep == 'audit' }}" href="{{ url_for('audit') }}">{{ icon('scroll-text') }}Audit log</a>
     </div>
     {% endif %}
-    <div class="mode-pill">{{ icon('activity', 'ic-sm') }}<span>{% if llm_on %}AI: <b>Groq {{ model }}</b>{% else %}AI: <b>offline rule-based mode</b><br>Add GROQ_API_KEY to .env to use Groq.{% endif %}<br>Database: <b>{{ db_engine }}</b></span></div>
     <div class="side-foot">
       {{ avatar(user.full_name) }}
       <span class="who">{{ user.full_name }}<small>{{ role_labels[user.role] }}</small></span>

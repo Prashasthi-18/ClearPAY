@@ -115,8 +115,6 @@
       </form>
       {% else %}
       <div class="login-head">
-        {% set hr = today_ist.hour %}
-        <p class="login-greet" id="login-greet">Good {{ 'morning' if 5 <= hr < 12 else ('afternoon' if 12 <= hr < 17 else 'evening') }}</p>
         <h1>Sign in</h1>
         <div class="login-msg">
           {% if error %}<div class="login-alert bad" role="alert">{{ icon('circle-alert', 'ic-sm') }}<span>{{ error }}</span></div>

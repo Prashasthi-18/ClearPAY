@@ -326,13 +326,6 @@
     });
   }
 
-  // ---------- greeting and sky follow the visitor's own clock (theme.js already set the sky before first paint) ----------
-  var greet = document.getElementById("login-greet");
-  if (greet) {
-    var h = new Date().getHours();
-    greet.textContent = h >= 5 && h < 12 ? "Good morning" : (h >= 12 && h < 17 ? "Good afternoon" : "Good evening");
-  }
-
   // ---------- Caps Lock warning on the password field (the most common reason for a wrong password) ----------
   var pw = document.getElementById("p"), caps = document.getElementById("caps-warn");
   if (pw && caps) {
