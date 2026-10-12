@@ -6,6 +6,7 @@ Run:  python app.py   ->  http://127.0.0.1:5000
 import csv
 import io
 import json
+import math
 import os
 import re
 import secrets
@@ -1038,7 +1039,59 @@ def vendors_page():
 @app.route("/analytics")
 @security.login_required
 def analytics():
-    return render_template("analytics.html", a=insights.analytics())
+    a = insights.analytics()
+    total = a["spend_total"] or 0
+    # Spend by vendor as columns: the top 4, the rest as "Other vendors"
+    vendors = a["spend_by_vendor"]
+    cols = vendors[:4] + ([{"label": "Other vendors", "amount": sum(v["amount"] for v in vendors[4:])}] if len(vendors) > 4 else [])
+    top = max((c["amount"] for c in cols), default=0)
+    breakdown = [{"label": c["label"], "amount": c["amount"], "pct": round(100 * c["amount"] / total) if total else 0,
+                  "h": max(30, round(100 * c["amount"] / top)) if top else 30} for c in cols]
+    # Spend by month as bars on a "nice" axis (0, then 4 even steps up to a round number)
+    peak = max((m["amount"] for m in a["spend_by_month"]), default=0)
+    axis_max = 4 * _nice_ceiling(peak / 4)
+    months = [{"label": datetime.strptime(m["label"], "%Y-%m").strftime("%b %y"), "amount": m["amount"],
+               "h": round(100 * m["amount"] / axis_max, 1) if axis_max else 0} for m in a["spend_by_month"]]
+    ticks = [axis_max * i / 4 for i in range(4, -1, -1)] if axis_max else []
+    return render_template("analytics.html", a=a, breakdown=breakdown, months=months, ticks=ticks,
+                           notes=_analytics_insights(a, breakdown))
+
+
+def _nice_ceiling(x):
+    """The smallest 1, 2, 2.5 or 5 × 10^k that is at least x (for chart axes)."""
+    if x <= 0:
+        return 0
+    k = 10 ** math.floor(math.log10(x))
+    return next(f * k for f in (1, 2, 2.5, 5, 10) if f * k >= x)
+
+
+def _analytics_insights(a, breakdown):
+    """Plain-language findings worked out from the same numbers (no AI involved)."""
+    notes = []
+    if breakdown and a["spend_total"]:
+        big = breakdown[0]
+        notes.append({"tone": "info", "title": f"{big['label']} is your largest supplier",
+                      "body": f"{big['pct']}% of approved spend ({tools.fmt_inr(big['amount'])}) goes to {big['label']}. "
+                              "A large share with one supplier is worth a price review.", "link": url_for("vendors_page")})
+    if a["fraud_count"]:
+        kind = a["fraud_by_type"][0]["type"].lower() if a["fraud_by_type"] else "fraud signs"
+        notes.append({"tone": "bad", "title": f"{a['fraud_count']} risky invoice{'s' if a['fraud_count'] != 1 else ''} stopped before payment",
+                      "body": f"{tools.fmt_inr(a['fraud_amount'])} was held back. The most common reason: {kind}.",
+                      "link": url_for("dashboard", status="Flagged")})
+    if a["overdue"]:
+        soon = f", and {a['due_soon']} more fall due within 7 days" if a["due_soon"] else ""
+        notes.append({"tone": "warn", "title": f"{a['overdue']} invoice{'s are' if a['overdue'] != 1 else ' is'} overdue",
+                      "body": f"{tools.fmt_inr(a['overdue_amount'])} is past its due date{soon}. "
+                              "MSME suppliers must be paid within 45 days.", "link": url_for("deadlines", show="overdue")})
+    if a["on_hold"]:
+        notes.append({"tone": "warn", "title": f"{tools.fmt_inr(a['on_hold'])} is waiting for a review",
+                      "body": "Flagged invoices and invoices waiting for a manager. Nothing is paid until a person decides.",
+                      "link": url_for("dashboard")})
+    if a["ai"]["agreement_pct"] is not None:
+        notes.append({"tone": "ok", "title": f"People agreed with the AI {a['ai']['agreement_pct']}% of the time",
+                      "body": f"{a['ai']['agreed']} of {a['ai']['decided']} decisions matched the Investigator's recommendation. "
+                              "The AI recommends; people decide.", "link": url_for("compare")})
+    return notes
 
 
 # ==========================================================================
