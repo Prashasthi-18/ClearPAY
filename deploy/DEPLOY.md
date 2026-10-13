@@ -129,7 +129,7 @@ Open `https://your-domain`. The first load can take a few seconds while Caddy ge
 1. Sign in as `admin` with your `DEMO_PASSWORD`.
 2. **Settings & users:** set the real manager and AP team emails, and vendor emails; use **Reset a password** to give each user a different password.
 3. Deactivate demo users you don't need (for example `ap_user2`).
-4. Upload a test invoice, approve it as `manager` in a private window, and check the notification reaches `ap_user`.
+4. Upload a test invoice, approve it as `mokshana` in a private window, and check the notification reaches `prashasthi`.
 5. Visit `https://your-domain/healthz`: it should print `ok`.
 
 ### 11. Back up the database

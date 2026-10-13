@@ -15,9 +15,9 @@
 One problem, one flow, one proof. Skip the other pages unless asked.
 
 1. **The problem (20 s).** AP teams check every invoice against its purchase order by hand. Mistakes and fraud (duplicates, changed bank details, overcharges) slip through, and small suppliers get paid late.
-2. **Upload (40 s).** Sign in as `ap_user`, go to **Upload invoice** and drop in one clean invoice and one from `redteam_invoices/`. The agent steps appear live.
+2. **Upload (40 s).** Sign in as `prashasthi`, go to **Upload invoice** and drop in one clean invoice and one from `redteam_invoices/`. The agent steps appear live.
 3. **The catch (50 s).** Open the flagged invoice: problem cards, invoice vs PO table, the PDF with red boxes on the bad values, the Investigator's recommendation with evidence, and the drafted vendor email.
-4. **People decide (30 s).** Send it to the manager. Sign in as `manager`, approve or reject in **Approvals**, and show the AP notification.
+4. **People decide (30 s).** Send it to the manager. Sign in as `mokshana`, approve or reject in **Approvals**, and show the AP notification.
 5. **Ready to pay (20 s).** Go to **Payment deadlines** and show the due dates (MSME capped at 45 days). Press **Payment file (CSV)**, the file for the bank.
 6. **Proof (20 s).** Show **Rules vs AI** and **Analytics** (fraud caught, money saved).
 

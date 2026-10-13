@@ -37,16 +37,16 @@ def test_pages_need_login(app):
 
 
 def test_roles_are_enforced_on_the_server(app):
-    ap, _ = login(app, "ap_user")
+    ap, _ = login(app, "prashasthi")
     assert ap.get("/approvals").status_code == 403
     assert ap.get("/settings").status_code == 403
-    mgr, _ = login(app, "manager")
+    mgr, _ = login(app, "mokshana")
     assert mgr.get("/upload").status_code == 403
     assert mgr.get("/approvals").status_code == 200
 
 
 def test_post_without_csrf_token_is_refused(app):
-    ap, _ = login(app, "ap_user")
+    ap, _ = login(app, "prashasthi")
     assert ap.post("/upload", data={}).status_code == 400
 
 
@@ -96,7 +96,7 @@ def test_uploader_cannot_approve_own_invoice(app):
     t = token(admin.get("/").text)
     admin.post(f"/invoice/{iid}/approve", data={"csrf_token": t})
     assert db.query("SELECT status FROM invoices WHERE id=?", (iid,), one=True)["status"] == "Pending"
-    mgr, _ = login(app, "manager")
+    mgr, _ = login(app, "mokshana")
     t = token(mgr.get("/approvals").text)
     mgr.post(f"/invoice/{iid}/approve", data={"csrf_token": t, "comment": "ok"})
     assert db.query("SELECT status FROM invoices WHERE id=?", (iid,), one=True)["status"] == "Approved"
@@ -184,9 +184,9 @@ def _upload_pending(admin):
 def test_manager_approval_notifies_the_ap_team_and_reading_clears_it(app):
     admin, _ = login(app, "admin")
     iid = _upload_pending(admin)
-    mgr, _ = login(app, "manager")
+    mgr, _ = login(app, "mokshana")
     mgr.post(f"/invoice/{iid}/approve", data={"csrf_token": token(mgr.get("/approvals").text)})
-    ap, _ = login(app, "ap_user")
+    ap, _ = login(app, "prashasthi")
     d = ap.get("/api/notifications?after=0").get_json()
     assert d["unread"] >= 1 and any(n["kind"] == "approved" and n["invoice_id"] == iid for n in d["recent"])
     page = ap.get(f"/invoice/{iid}").text                       # opening the invoice marks it read
@@ -197,7 +197,7 @@ def test_manager_approval_notifies_the_ap_team_and_reading_clears_it(app):
 def test_notifications_are_private_per_user(app):
     admin, _ = login(app, "admin")
     iid = _upload_pending(admin)
-    mgr, _ = login(app, "manager")
+    mgr, _ = login(app, "mokshana")
     mgr.post(f"/invoice/{iid}/approve", data={"csrf_token": token(mgr.get("/approvals").text)})
     other = db.query("SELECT id FROM notifications WHERE user_id != (SELECT id FROM users WHERE username='ap_user2') LIMIT 1", one=True)
     ap2, _ = login(app, "ap_user2")
@@ -206,7 +206,7 @@ def test_notifications_are_private_per_user(app):
 
 
 def test_sign_out_ends_the_session_on_the_server(app):
-    c, _ = login(app, "ap_user")
+    c, _ = login(app, "prashasthi")
     sid = db.query("SELECT id FROM user_sessions ORDER BY created_at DESC LIMIT 1", one=True)["id"]
     c.post("/logout", data={"csrf_token": token(c.get("/").text)})
     assert db.query("SELECT ended_at FROM user_sessions WHERE id=?", (sid,), one=True)["ended_at"]
@@ -214,26 +214,26 @@ def test_sign_out_ends_the_session_on_the_server(app):
 
 
 def test_signing_out_other_sessions_locks_them_out(app):
-    first, _ = login(app, "ap_user")
-    second, _ = login(app, "ap_user")
+    first, _ = login(app, "prashasthi")
+    second, _ = login(app, "prashasthi")
     assert first.get("/").status_code == 200
     second.post("/account?tab=security", data={"csrf_token": token(second.get("/account?tab=security").text), "action": "end_others"})
     assert first.get("/").status_code == 302 and second.get("/").status_code == 200
 
 
 def test_password_change_needs_the_current_password_and_signs_out_others(app):
-    other, _ = login(app, "ap_user")
-    me, _ = login(app, "ap_user")
+    other, _ = login(app, "prashasthi")
+    me, _ = login(app, "prashasthi")
     t = token(me.get("/account?tab=security").text)
     me.post("/account?tab=security", data={"csrf_token": t, "action": "password", "current": "wrong", "new": "NewPass!2026x", "confirm": "NewPass!2026x"})
-    assert login(app, "ap_user", "NewPass!2026x")[1].status_code == 200 and b"Wrong username" in login(app, "ap_user", "NewPass!2026x")[1].data
+    assert login(app, "prashasthi", "NewPass!2026x")[1].status_code == 200 and b"Wrong username" in login(app, "prashasthi", "NewPass!2026x")[1].data
     me.post("/account?tab=security", data={"csrf_token": t, "action": "password", "current": PASSWORD, "new": "NewPass!2026x", "confirm": "NewPass!2026x"})
     assert other.get("/").status_code == 302                      # the other session was signed out
-    assert login(app, "ap_user", "NewPass!2026x")[1].status_code == 302
+    assert login(app, "prashasthi", "NewPass!2026x")[1].status_code == 302
 
 
 def test_theme_is_saved_to_the_account(app):
-    c, _ = login(app, "ap_user")
+    c, _ = login(app, "prashasthi")
     r = c.post("/account?tab=appearance", data={"csrf_token": token(c.get("/account?tab=appearance").text), "action": "theme",
                                                 "theme": "dark"}, headers={"Accept": "application/json"})
     assert r.get_json()["theme"] == "dark"
@@ -351,7 +351,7 @@ def test_brevo_status_names_missing_settings(brevo, monkeypatch):
 
 
 def test_dashboard_search_works_for_text_and_for_amounts(app):
-    ap, _ = login(app, "ap_user")
+    ap, _ = login(app, "prashasthi")
     _upload_and_wait(ap, _sample("01_clean_match.pdf"))
     row = db.query("SELECT invoice_number, vendor_name, total FROM invoices", one=True)
     for q in (row["vendor_name"].split()[0], row["vendor_name"].lower(), row["invoice_number"], f"{row['total']:.2f}", "₹" + f"{row['total']:,.2f}"):
@@ -363,7 +363,7 @@ def test_dashboard_search_works_for_text_and_for_amounts(app):
 def test_quick_search_palette_lists_invoices_only_when_signed_in(app):
     r = app.test_client().get("/api/palette")
     assert r.status_code in (302, 401)
-    ap, _ = login(app, "ap_user")
+    ap, _ = login(app, "prashasthi")
     _upload_and_wait(ap, _sample("01_clean_match.pdf"))
     rows = ap.get("/api/palette").get_json()
     row = db.query("SELECT id, invoice_number FROM invoices", one=True)

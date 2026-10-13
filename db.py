@@ -672,9 +672,9 @@ PURCHASE_ORDERS = [
 
 DEMO_USERS = [
     # username, full name, email, role
-    ("ap_user", "Priya Nair", "ap-team@company.example", "ap"),
+    ("prashasthi", "Priya Nair", "ap-team@company.example", "ap"),
     ("ap_user2", "Ravi Kumar", "ap-team@company.example", "ap"),
-    ("manager", "Meera Iyer", "manager@company.example", "manager"),
+    ("mokshana", "Meera Iyer", "manager@company.example", "manager"),
     ("admin", "Admin", "admin@company.example", "admin"),
 ]
 

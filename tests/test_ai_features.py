@@ -219,7 +219,7 @@ PO_FORM = {"po_number": "PO-7777", "vendor_id": "1", "issue_date": "2026-10-01",
 
 
 def test_only_admin_can_create_or_edit_purchase_orders(app):
-    for user in ("ap_user", "manager"):
+    for user in ("prashasthi", "mokshana"):
         c, t = login(app, user)
         assert c.get("/pos").status_code == 200                              # everyone can view
         assert c.get("/pos/new").status_code == 403
@@ -237,16 +237,16 @@ def test_only_a_person_records_a_payment(app):
     db.execute("UPDATE invoices SET status='Approved' WHERE id=?", (iid,))
     db.execute("""INSERT INTO ledger(invoice_id, amount, status, created_at, updated_at)
                   VALUES (?, 1000, 'ready_to_pay', ?, ?)""", (iid, db.now_iso(), db.now_iso()))
-    c, t = login(app, "manager")
+    c, t = login(app, "mokshana")
     assert c.post(f"/invoice/{iid}/record-payment", data={"csrf_token": t}).status_code == 403
-    c, t = login(app, "ap_user")
+    c, t = login(app, "prashasthi")
     assert c.post(f"/invoice/{iid}/record-payment", data={"csrf_token": t, "payment_ref": "UTR1"}).status_code == 302
     led = db.query("SELECT * FROM ledger WHERE invoice_id=?", (iid,), one=True)
     assert led["status"] == "paid" and led["paid_by"]
 
 
 def test_new_pages_load_for_every_role(app):
-    for user in ("ap_user", "manager", "admin"):
+    for user in ("prashasthi", "mokshana", "admin"):
         c, _ = login(app, user)
         for page in ("/ask", "/deadlines", "/vendors", "/analytics", "/compare", "/?ask=overdue+invoices"):
             assert c.get(page).status_code == 200, (user, page)
@@ -293,9 +293,9 @@ def test_payment_file_lists_only_ready_to_pay_and_only_for_ap(app):
     db.execute("""INSERT INTO ledger(invoice_id, amount, status, created_at, updated_at)
                   VALUES (?, 1000, 'ready_to_pay', ?, ?)""", (iid, db.now_iso(), db.now_iso()))
     other = _flagged_invoice()                                               # still flagged: not in the file
-    c, _ = login(app, "manager")
+    c, _ = login(app, "mokshana")
     assert c.get("/deadlines/payment-file.csv").status_code == 403
-    c, _ = login(app, "ap_user")
+    c, _ = login(app, "prashasthi")
     r = c.get("/deadlines/payment-file.csv")
     assert r.status_code == 200 and r.mimetype == "text/csv"
     lines = r.text.strip().splitlines()

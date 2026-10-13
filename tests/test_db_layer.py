@@ -19,8 +19,8 @@ def test_insert_or_ignore_skips_duplicates_without_error(fresh_db):
 
 
 def test_rows_work_by_name_and_by_position_and_as_dicts(fresh_db):
-    row = db.query("SELECT username, role FROM users WHERE username='manager'", one=True)
-    assert row["username"] == "manager" and row[0] == "manager" and row[1] == "manager" and dict(row)["role"] == "manager"
+    row = db.query("SELECT username, role FROM users WHERE username='mokshana'", one=True)
+    assert row["username"] == "mokshana" and row[0] == "mokshana" and row[1] == "manager" and dict(row)["role"] == "manager"
 
 
 def test_like_ignores_case_on_both_engines(fresh_db):

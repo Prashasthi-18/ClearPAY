@@ -291,7 +291,7 @@ def main():
     print(f"Test invoices: {len(tests)} in {db.SAMPLE_DIR}  expected: {counts}")
     print(f"Red-team: {sum(1 for a in attacks if not a['setup'])} attacks + "
           f"{sum(1 for a in attacks if a['setup'])} setup invoices in {db.REDTEAM_DIR}")
-    print(f"Demo logins: ap_user / ap_user2 / manager / admin  password: {os.getenv('DEMO_PASSWORD', 'ChangeMe!2026')}")
+    print(f"Demo logins: prashasthi / ap_user2 / mokshana / admin  password: {os.getenv('DEMO_PASSWORD', 'ChangeMe!2026')}")
     if args.fill_inbox:
         print(f"Copied {args.fill_inbox} invoices into {db.INBOX_DIR} for the watcher to pick up.")
 

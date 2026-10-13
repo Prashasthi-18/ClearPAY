@@ -31,7 +31,7 @@ def token(html):
     return re.search(r'name="csrf_token" value="([^"]+)"', html).group(1)
 
 
-def password_login(c, username="ap_user", password=PASSWORD):
+def password_login(c, username="prashasthi", password=PASSWORD):
     return c.post("/login", data={"username": username, "password": password, "csrf_token": token(c.get("/login").text)})
 
 
@@ -39,7 +39,7 @@ def user(username):
     return db.query("SELECT * FROM users WHERE username=?", (username,), one=True)
 
 
-def turn_on_mfa(username="ap_user"):
+def turn_on_mfa(username="prashasthi"):
     secret = mfa.new_secret()
     codes, stored = mfa.new_recovery_codes()
     db.execute("UPDATE users SET mfa_enabled=1, mfa_secret=?, mfa_recovery=? WHERE username=?", (mfa.seal(secret), stored, username))
@@ -99,7 +99,7 @@ def test_wrong_codes_count_towards_the_lockout(app):
     for _ in range(security.MAX_FAILED_LOGINS):
         r = c.post("/login/mfa", data={"code": "000000", "csrf_token": token(c.get("/login/mfa").text)})
     assert r.status_code == 302 and r.headers["Location"].endswith("/login")
-    assert user("ap_user")["locked_until"] is not None
+    assert user("prashasthi")["locked_until"] is not None
     assert "locked" in c.get("/login").text
 
 
@@ -131,11 +131,11 @@ def test_setting_up_mfa_from_the_account_page(app):
     c.post("/account?tab=security", data={"action": "mfa_start", "csrf_token": t})
     page = c.get("/account?tab=security&setup=1").text
     assert "<svg" in page and "Setup key" in page
-    assert not user("ap_user")["mfa_enabled"]                            # not on until a code proves the scan
-    secret = mfa.unseal(user("ap_user")["mfa_secret"])
+    assert not user("prashasthi")["mfa_enabled"]                            # not on until a code proves the scan
+    secret = mfa.unseal(user("prashasthi")["mfa_secret"])
     r = c.post("/account?tab=security", data={"action": "mfa_confirm", "code": mfa.code_at(secret, mfa.current_step()),
                                               "csrf_token": t})
-    assert "Your recovery codes" in r.text and user("ap_user")["mfa_enabled"] == 1
+    assert "Your recovery codes" in r.text and user("prashasthi")["mfa_enabled"] == 1
     assert len(re.findall(r"<li>[a-z2-9]{5}-[a-z2-9]{5}</li>", r.text)) == 10
 
 
@@ -149,11 +149,11 @@ def test_required_roles_must_set_up_mfa_first(app, monkeypatch):
 
 
 def test_admin_can_reset_someones_mfa(app):
-    turn_on_mfa("ap_user")
+    turn_on_mfa("prashasthi")
     c = app.test_client()
     password_login(c, "admin")
-    c.post("/settings", data={"action": "reset_mfa", "uid": user("ap_user")["id"], "csrf_token": token(c.get("/settings").text)})
-    u = user("ap_user")
+    c.post("/settings", data={"action": "reset_mfa", "uid": user("prashasthi")["id"], "csrf_token": token(c.get("/settings").text)})
+    u = user("prashasthi")
     assert u["mfa_enabled"] == 0 and u["mfa_secret"] is None
 
 
@@ -190,14 +190,14 @@ def test_google_sign_up_creates_an_inactive_account_for_an_admin_to_approve(app,
 
 
 def test_google_links_to_an_existing_account_by_verified_email(app, monkeypatch):
-    db.execute("UPDATE users SET email='ap@example.com' WHERE username='ap_user'")
+    db.execute("UPDATE users SET email='ap@example.com' WHERE username='prashasthi'")
     c = app.test_client()
     google_round_trip(c, monkeypatch, email="ap@example.com", sub="g-ap")
-    assert c.get("/").status_code == 200 and user("ap_user")["google_sub"] == "g-ap"
+    assert c.get("/").status_code == 200 and user("prashasthi")["google_sub"] == "g-ap"
 
 
 def test_google_sign_in_still_asks_for_the_mfa_code(app, monkeypatch):
-    db.execute("UPDATE users SET google_sub='g-ap' WHERE username='ap_user'")
+    db.execute("UPDATE users SET google_sub='g-ap' WHERE username='prashasthi'")
     turn_on_mfa()
     c = app.test_client()
     r = google_round_trip(c, monkeypatch, email="ap@example.com", sub="g-ap")
@@ -235,11 +235,11 @@ def test_google_button_is_hidden_until_configured(app, monkeypatch):
 
 # ---------------------------------------------------------------- username or email
 def test_sign_in_with_email_instead_of_username(app):
-    db.execute("UPDATE users SET email='Priya@Example.com' WHERE username='ap_user'")
+    db.execute("UPDATE users SET email='Priya@Example.com' WHERE username='prashasthi'")
     c = app.test_client()
     password_login(c, "priya@example.com")
     assert c.get("/").status_code == 200
-    db.execute("UPDATE users SET email='shared@example.com' WHERE username IN ('ap_user', 'ap_user2')")
+    db.execute("UPDATE users SET email='shared@example.com' WHERE username IN ('prashasthi', 'ap_user2')")
     c = app.test_client()
     r = password_login(c, "shared@example.com")                 # two accounts share it: refused, like a wrong password
     assert r.status_code == 200 and c.get("/").status_code == 302
@@ -327,11 +327,11 @@ ASYNC = {"X-ClearPay-Async": "1"}
 def test_background_sign_in_answers_in_json(app):
     c = app.test_client()
     t = token(c.get("/login").text)
-    bad = c.post("/login", data={"username": "ap_user", "password": "wrong", "csrf_token": t}, headers=ASYNC).get_json()
+    bad = c.post("/login", data={"username": "prashasthi", "password": "wrong", "csrf_token": t}, headers=ASYNC).get_json()
     assert bad["ok"] is False and bad["error"]
     assert c.get("/").status_code == 302                                  # still signed out
-    good = c.post("/login", data={"username": "ap_user", "password": PASSWORD, "csrf_token": t}, headers=ASYNC).get_json()
-    assert good["ok"] is True and good["next"].endswith("/") and good["first"] == user("ap_user")["full_name"].split()[0]
+    good = c.post("/login", data={"username": "prashasthi", "password": PASSWORD, "csrf_token": t}, headers=ASYNC).get_json()
+    assert good["ok"] is True and good["next"].endswith("/") and good["first"] == user("prashasthi")["full_name"].split()[0]
     assert good["initials"] and good["color"]
     assert c.get("/").status_code == 200                                  # the session is real
 
@@ -340,7 +340,7 @@ def test_background_sign_in_hands_over_to_the_code_step(app):
     secret, _ = turn_on_mfa()
     c = app.test_client()
     t = token(c.get("/login").text)
-    r = c.post("/login", data={"username": "ap_user", "password": PASSWORD, "csrf_token": t}, headers=ASYNC).get_json()
+    r = c.post("/login", data={"username": "prashasthi", "password": PASSWORD, "csrf_token": t}, headers=ASYNC).get_json()
     assert r["ok"] is True and r.get("mfa") and r["next"].endswith("/login/mfa") and "name" not in r
     page = c.get("/login/mfa").text
     wrong = c.post("/login/mfa", data={"code": "000000", "csrf_token": token(page)}, headers=ASYNC).get_json()

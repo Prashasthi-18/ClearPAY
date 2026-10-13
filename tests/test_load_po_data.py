@@ -65,7 +65,7 @@ def test_loading_never_touches_invoices(empty_db):
 def test_a_new_database_gets_the_four_demo_users_and_nothing_else(empty_db):
     db.seed_users(PASSWORD)
     db.seed_users(PASSWORD)
-    assert [r["username"] for r in db.query("SELECT username FROM users ORDER BY id")] == ["ap_user", "ap_user2", "manager", "admin"]
+    assert [r["username"] for r in db.query("SELECT username FROM users ORDER BY id")] == ["prashasthi", "ap_user2", "mokshana", "admin"]
     assert db.query("SELECT COUNT(*) n FROM vendors", one=True)["n"] == 0        # no built-in demo vendors sneak in
 
 
@@ -97,7 +97,7 @@ def app(fresh_db):
 def signed_in(app):
     c = app.test_client()
     t = re.search(r'name="csrf_token" value="([^"]+)"', c.get("/login").text).group(1)
-    c.post("/login", data={"username": "ap_user", "password": PASSWORD, "csrf_token": t})
+    c.post("/login", data={"username": "prashasthi", "password": PASSWORD, "csrf_token": t})
     return c
 
 

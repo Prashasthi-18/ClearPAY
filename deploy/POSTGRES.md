@@ -64,7 +64,7 @@ You can also run `load_po_data.py` on its own against an empty database: it crea
 ```powershell
 python app.py
 ```
-The sidebar shows **Database: PostgreSQL**. Sign in as `ap_user` and upload invoices as usual. The **Purchase orders** page
+The sidebar shows **Database: PostgreSQL**. Sign in as `prashasthi` and upload invoices as usual. The **Purchase orders** page
 lists the first 100 POs and has a search box (PO number or vendor) for the rest.
 
 ## 6. See the data in PostgreSQL

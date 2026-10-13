@@ -95,8 +95,8 @@ Open http://127.0.0.1:5000 and sign in.
 
 | Username | Role | Can do |
 |---|---|---|
-| `ap_user`, `ap_user2` | AP team | Upload, review flagged invoices, send to manager, reject flagged, run evaluations |
-| `manager` | Manager | Approve or reject pending invoices |
+| `prashasthi`, `ap_user2` | AP team | Upload, review flagged invoices, send to manager, reject flagged, run evaluations |
+| `mokshana` | Manager | Approve or reject pending invoices |
 | `admin` | Admin | Everything, plus rules, users and the regression baseline |
 
 The password for all four is `DEMO_PASSWORD` from `.env` (default `ChangeMe!2026`; change it).
@@ -109,9 +109,9 @@ The password for all four is `DEMO_PASSWORD` from `.env` (default `ChangeMe!2026
 
 ### Try it
 
-1. Sign in as `ap_user` and go to **Upload invoice**. Drag in files from `sample_invoices/` or `redteam_invoices/` and watch each agent step appear live.
+1. Sign in as `prashasthi` and go to **Upload invoice**. Drag in files from `sample_invoices/` or `redteam_invoices/` and watch each agent step appear live.
 2. Open a flagged invoice to see **where it went wrong**: problem cards, invoice vs PO table, the original PDF with red boxes on the bad values, the agent's reasoning, and the drafted emails.
-3. Sign in as `manager` and go to **Approvals**. Approve one invoice, and the agent drafts the "approved" email to the AP team.
+3. Sign in as `mokshana` and go to **Approvals**. Approve one invoice, and the agent drafts the "approved" email to the AP team.
 4. Or copy files into `invoices_inbox/`. The watcher picks them up within a few seconds (`python generate_data.py --fill-inbox 8` does this for you).
 5. Go to **Evaluation report** and press **Run evaluation**. Then look at the **Red-team lab**, **What-if replay** and **Decision regression** pages.
 

@@ -105,7 +105,7 @@ def main():
               + ("  (Kaggle amounts are large: run again with --set-limit to use Rs 50,000)" if db.get_settings()["auto_approve_limit"] < 50000 else ""))
     if not a.dry_run and not db.query("SELECT 1 FROM users LIMIT 1", one=True):
         db.seed_users()                       # a brand-new database also needs people to sign in
-        print("Users    : created ap_user, ap_user2, manager and admin (password = DEMO_PASSWORD in .env)")
+        print("Users    : created prashasthi, ap_user2, mokshana and admin (password = DEMO_PASSWORD in .env)")
     if not a.dry_run:
         n = db.query("SELECT COUNT(*) n FROM purchase_orders", one=True)["n"]
         v = db.query("SELECT COUNT(*) n FROM vendors", one=True)["n"]
