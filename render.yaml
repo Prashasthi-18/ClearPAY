@@ -33,3 +33,11 @@ services:
         value: "0"
       - key: EMAIL_MODE             # mock = drafts are only marked as sent; see deploy/DEPLOY.md for brevo
         value: mock
+      # "Continue with Google" (deploy/AUTH_SETUP.md). The button only appears when both client values are set.
+      # GOOGLE_REDIRECT_URI = https://<your-service>.onrender.com/auth/google/callback, also added in Google Cloud.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
