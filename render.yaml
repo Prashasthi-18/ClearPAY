@@ -1,0 +1,35 @@
+# Render Blueprint: dashboard.render.com > New > Blueprint > pick this repository.
+# One web service on the free plan. The free disk is wiped when the service sleeps (15 min without visitors),
+# restarts or redeploys: uploaded invoices disappear, but users, vendors and purchase orders come back on start.
+# See deploy/DEPLOY.md, "Route C: Render".
+services:
+  - type: web
+    name: clearpay
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # ONE worker: the agent queue, the inbox watcher and the rate limits live in memory (see wsgi.py).
+    startCommand: gunicorn --workers 1 --threads 4 --timeout 60 --bind 0.0.0.0:$PORT wsgi:app
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: DEMO_PASSWORD          # password for prashasthi, ap_user2, mokshana and admin; the default is refused
+        sync: false
+      - key: GROQ_API_KEY           # leave empty for offline rule-based mode
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: LLM_MODE
+        value: extract_only
+      - key: GROQ_REASONING_EFFORT
+        value: low
+      - key: BEHIND_PROXY
+        value: "1"
+      - key: SESSION_COOKIE_SECURE
+        value: "1"
+      - key: SHOW_DEMO_HINT
+        value: "0"
+      - key: EMAIL_MODE             # mock = drafts are only marked as sent; see deploy/DEPLOY.md for brevo
+        value: mock
