@@ -1,0 +1,19 @@
+TAX INVOICE
+Vendor: Вeta Supplies
+GSTIN: 29ABHCB9779D1ZP
+Invoice No: BET-4102
+Invoice Date: 2026-10-14
+PO Number: PO-2134
+Bill To: Your Company Pvt Ltd, HITEC City, Hyderabad 500081
+
+Items:
+1. Office Supplies | Qty: 280 | Unit Price: INR 69.29 | Amount: INR 19,401.20
+
+Subtotal: INR 19,401.20
+CGST (9%): INR 1,746.11
+SGST (9%): INR 1,746.11
+Total: INR 22,893.42
+
+Bank A/c No: 50200078341256
+IFSC: HDFC0001987
+Payment terms: 30 days
