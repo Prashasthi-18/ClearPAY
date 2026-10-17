@@ -31,11 +31,14 @@ and sends only the exceptions to a person.
 
 ## What it does
 
-1. **Reads** each invoice: PDF, text, scan, inbox folder or email.
-2. **Checks** it in code: vendor, duplicates, maths, GST, PO lines, bank-detail changes, look-alike names and hidden
-   prompt injection.
-3. **Decides** the route: ✅ approve · ⏳ send to a manager · 🚩 flag · ❌ reject.
-4. **Explains** every decision in plain words, with the problem boxed in red on the original document.
+<table>
+<tr>
+<td width="25%" valign="top"><img src="docs/icons/file-text.svg" width="28" alt=""><br><b>Reads</b><br><sub>PDF, text, scans, an inbox folder or email</sub></td>
+<td width="25%" valign="top"><img src="docs/icons/shield-check.svg" width="28" alt=""><br><b>Checks</b><br><sub>Vendor, duplicates, maths, GST, PO lines, bank changes, look-alike names, prompt injection</sub></td>
+<td width="25%" valign="top"><img src="docs/icons/scale.svg" width="28" alt=""><br><b>Decides</b><br><sub>Approve, send to a manager, flag or reject</sub></td>
+<td width="25%" valign="top"><img src="docs/icons/eye.svg" width="28" alt=""><br><b>Explains</b><br><sub>Plain-words reasons, with the problem boxed in red on the original</sub></td>
+</tr>
+</table>
 
 > [!IMPORTANT]
 > **ClearPay never pays, and the AI never makes a payment decision.** The AI reads and recommends, code enforces the
@@ -76,13 +79,15 @@ and sends only the exceptions to a person.
 
 ## Key features
 
-- 🤖 **Investigator agent:** looks into flagged invoices and recommends approve, reject or ask the vendor, with evidence.
-- 🔗 **Smart matching:** matches differently worded lines and units ("box of 10 reams") to the PO; code checks the numbers.
-- 💬 **Ask ClearPay:** a chat over read-only data that can't take any action.
-- 📅 **Payment deadlines**, 📊 **analytics** and 🏷️ **vendor risk scores**, all worked out in code.
-- 🛡️ **Red-team lab, what-if replay and decision regression** for testing the agent.
-- 🔐 **Secure by design:** role-based access, segregation of duties, 2FA, Google sign-in and a tamper-evident audit log.
-- 📴 **Works offline:** without a Groq key, every AI feature falls back to rules.
+| | Feature | What it does |
+|:---:|---|---|
+| <img src="docs/icons/sparkles.svg" width="20" alt=""> | **Investigator agent** | Looks into flagged invoices and recommends approve, reject or ask the vendor, with evidence |
+| <img src="docs/icons/git-compare.svg" width="20" alt=""> | **Smart matching** | Matches differently worded lines and units ("box of 10 reams") to the PO; code checks the numbers |
+| <img src="docs/icons/message-square.svg" width="20" alt=""> | **Ask ClearPay** | A chat over read-only data that can't take any action |
+| <img src="docs/icons/chart-column.svg" width="20" alt=""> | **Insights** | Payment deadlines, analytics and vendor risk scores, all worked out in code |
+| <img src="docs/icons/flask-conical.svg" width="20" alt=""> | **Agent testing** | Red-team lab, what-if replay and decision regression |
+| <img src="docs/icons/lock.svg" width="20" alt=""> | **Secure by design** | Role-based access, segregation of duties, 2FA, Google sign-in, tamper-evident audit log |
+| <img src="docs/icons/laptop.svg" width="20" alt=""> | **Works offline** | Without a Groq key, every AI feature falls back to rules |
 
 ---
 
@@ -118,10 +123,10 @@ Invoice ──► AI reads it ──► code checks it ──► decision ──
 
 | Situation | Result |
 |---|---|
-| Exact PO match, maths correct, small amount | ✅ **Approved** |
-| Over the limit, small PO difference or low confidence | ⏳ **Sent to a manager** |
-| Fraud signs, mismatches, missing PO, unreadable file | 🚩 **Flagged** |
-| Exact duplicate | ❌ **Rejected** |
+| Exact PO match, maths correct, small amount | <img src="docs/icons/circle-check.svg" width="16" alt=""> **Approved** |
+| Over the limit, small PO difference or low confidence | <img src="docs/icons/clock.svg" width="16" alt=""> **Sent to a manager** |
+| Fraud signs, mismatches, missing PO, unreadable file | <img src="docs/icons/triangle-alert.svg" width="16" alt=""> **Flagged** |
+| Exact duplicate | <img src="docs/icons/circle-x.svg" width="16" alt=""> **Rejected** |
 
 The AI only reads documents and recommends. It has no tool that can approve, reject or pay.
 
@@ -150,7 +155,7 @@ python evaluate.py --mode offline  # accuracy + red-team, no AI calls
 
 <br>
 
-**[🌐 Try the live demo →](https://clearpay-wk3j.onrender.com)**
+**[Try the live demo →](https://clearpay-wk3j.onrender.com)**
 
 <sub>The demo is on Render's free plan, so the first load can take up to a minute.</sub>
 
